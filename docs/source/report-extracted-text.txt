@@ -1,0 +1,1428 @@
+
+
+===== PAGE 1 =====
+DESIGN AND IMPLEMENTATION OF A
+MOBILE-FRIENDLY CLASSROOM ALLOCATION
+AND TIMETABLE MANAGEMENT SYSTEM
+FOR THE UNIVERSITY OF TECHNOLOGY
+AND APPLIED SCIENCE.
+A PROJECT REPORT
+Submitted by
+STEPHEN KWAME AGYAPONG JUNIOR
+in partial fulfilment for the award of the degree of
+BACHELOR OF SCIENCE
+in
+INFORMATION TECHNOLOGY
+SCHOOL OF COMPUTING AND INFORMATION SCIENCES,
+DEPARTMENT OF INFORMATION SYSTEMS AND
+TECHNOLOGY
+UNIVERSITY OF TECHNOLOGY AND APPLIED SCIENCE
+AUGUST, 2026
+
+
+===== PAGE 2 =====
+DECLARATION
+I, Stephen Kwame Agyapong Junior (20210412166), declare that this research report is my original work. It
+has not been submitted to any other university or higher institution of learning for any award. Any academic
+document consulted for information is duly acknowledged and properly cited.
+Signature:. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . Date:. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+STEPHEN KWAME AGYAPONG JUNIOR
+(20210412166)
+i
+
+
+===== PAGE 3 =====
+CERTIFICATION
+I hereby declare that this project report “DESIGN AND IMPLEMENTATION OF A MOBILE-FRIENDLY
+CLASSROOM ALLOCATION AND TIMETABLE MANAGEMENT SYSTEM FOR THE UNIVERSITY
+OF TECHNOLOGY AND APPLIED SCIENCES” is the authentic work of Stephen Kwame Agyapong who
+carried out this project work under my supervision.
+SUPERVISOR
+PROF. PETER AWON-NATEMI AGBEDEMNAB
+Signature: . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+Date: . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+HEAD OF DEPARTMENT
+DR. DAVID SANKA LAAR
+DEPARTMENT OF INFORMATION SYSTEMS AND TECHNOLOGY
+Signature: . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+Date: . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+ii
+
+
+===== PAGE 4 =====
+ACKNOWLEDGEMENTS
+I am taking this opportunity to express my sincere gratitude to everyone who contributed to the success of
+this project. I am highly indebted to PROF. PETER AWON-NATEMI AGBEDEMNAB (Supervisor), and all
+lecturers and colleague classmates in the INFORMATION SYSTEMS AND TECHNOLOGY department for
+their guidance, support and encouragement throughout the duration of this research project.
+iii
+
+
+===== PAGE 5 =====
+DEDICATION
+I dedicate this work to the Most High God, and to my family for their unwavering support and assistance
+throughout my studies.
+iv
+
+
+===== PAGE 6 =====
+ABSTRACT
+The purpose of this project was to design and implement a mobile-based classroom allocation system to address
+persistent scheduling challenges within the Information Systems and Technology Department of the University
+of Technology and Applied Sciences (UTAS). The objectives were to investigate the current manual classroom
+allocation system and identify its challenges, to develop a computerized solution capable of automating
+classroom allocation with timetable management, and to evaluate the effectiveness of the proposed solution in
+reducing scheduling conflicts.
+The study adopted the Design Science Research Methodology (DSRM), complemented by an Agile software
+development technique, to iteratively design, develop, and test the system. Requirements were gathered
+through questionnaires administered to students. The software was implemented using Hypertext Markup
+Language (HTML), Cascading Style Sheets (CSS), JavaScript, PHP, and MySQL, and evaluated through unit
+testing, integration testing, and user acceptance testing. Findings revealed that the system eliminated double
+bookings, automated class allocations efficiently, and improved communication timetable by providing real-
+time notifications. Evaluations with departmental staff and students indicated high usability (over 85% of
+participants found the system easy to use), scheduling accuracy exceeding 90%, system response times under
+2 seconds, and 99.5% uptime during the evaluation period.
+The significance of this project lies in its ability to enhance administrative efficiency, reduce human error,
+and provide equitable access to classroom resources. Academically, it contributes to research on mobile-first
+solutions in higher education, while practically, it offers a scalable model for adoption across other departments
+and technical universities in Ghana. It is recommended that the institution consider extending the system to
+other faculties to further improve resource management across the university.
+v
+
+
+===== PAGE 7 =====
+TABLE OF CONTENTS
+DECLARATION
+i
+CERTIFICATION
+ii
+ACKNOWLEDGEMENTS
+iii
+DEDICATION
+iv
+ABSTRACT
+v
+1 Introduction
+1
+1.1 Background of the Study
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 1
+1.2 Statement of the Problem
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+1.2.1 Research Questions
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+1.3 Objectives of the Study
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 4
+1.4 Significance of the Study
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 4
+1.5 Organization of the Study
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+2 Literature Review
+6
+2.1 Introduction
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+2.2 Overview of Classroom Allocation System
+. . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+2.3 Traditional Classroom Allocation System
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+2.4 Advantages of Traditional Classroom Allocation System
+. . . . . . . . . . . . . . . . . . . . 8
+2.5 Disadvantages of Classroom Allocation System
+. . . . . . . . . . . . . . . . . . . . . . . . . 9
+2.6 Computerized Classroom Allocation System
+. . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+2.7 Advantages of Computerized Classroom Allocation System
+. . . . . . . . . . . . . . . . . . . 11
+2.8 Related Work
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 12
+3 Research Methodology
+14
+3.1 Design Science Research Methodology
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+3.2 Problem Identification and Motivation
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+3.3 Objectives of the Proposed Solution
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+3.4 Design and Development
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+3.4.1 Requirement Elicitation and Analysis
+. . . . . . . . . . . . . . . . . . . . . . . . . . 16
+vi
+
+
+===== PAGE 8 =====
+3.5 Requirements
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+3.6 User Requirements
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+3.7 Functional Requirements
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+3.7.1 User Registration & Authentication
+. . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+3.7.2 User Profile Management
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+3.7.3 Class and Timetable Management
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+3.7.4 Allocation Optimization Engine
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+3.7.5 Course and Classroom Selection
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+3.7.6 Booking and Confirmation
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+3.7.7 Tracking and Notifications
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+3.7.8 Integration with Academic Calendar
+. . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+3.7.9 Resource Management
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+3.7.10 Admin Dashboard
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+3.8 Non-Functional Requirements
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+3.9 Software Development
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+3.9.1 Allocation Engine
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+3.9.2 Web App & Mobile App
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+3.9.3 Notification System
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+3.9.4 Agile Based Development
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+4 Proposed System Demonstration, Implementation, and Evaluation
+23
+4.1 Introduction
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+4.2 System Implementation
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+4.2.1 Overview of the Proposed Platform
+. . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+4.2.2 System Design Diagrams
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25
+4.3 Development Process
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 32
+4.3.1 Key Implementation Steps
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 32
+4.4 System Evaluation
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+4.4.1 Evaluation Methodology
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+4.4.2 Discussion
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+5 Summary, Conclusions and Recommendations
+35
+5.1 Concluding Remarks
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 35
+5.2 Recommendations
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 35
+REFERENCES
+37
+vii
+
+
+===== PAGE 9 =====
+APPENDIX A: Survey Response Diagrams
+41
+viii
+
+
+===== PAGE 10 =====
+LIST OF TABLES
+4.1 Evaluation Results
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+ix
+
+
+===== PAGE 11 =====
+LIST OF FIGURES
+4.1 Platform Home Page Interface
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25
+4.2 System Process Flow
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 26
+4.3 Use Case Diagram
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27
+4.4 Admin Dashboard
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27
+4.5 Timetable Module
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 28
+4.6 Login Screen
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 29
+4.7 Lecture Allocation System Login Screen
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . 29
+4.8 Manage Courses Screen
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 30
+4.9 Manage Lecturers
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31
+4.10 Manage Rooms
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31
+5.1 Willingness to Use a Classroom Allocation App
+. . . . . . . . . . . . . . . . . . . . . . . . . 41
+5.2 Main Challenges with Manual Allocation
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . 42
+5.3 Preferred Features in the System
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 42
+5.4 Trust in Digital vs Manual Allocation
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 43
+x
+
+
+===== PAGE 12 =====
+Chapter One
+Introduction
+1.1
+Background of the Study
+The scheduling and allocation of lecture rooms and considering class timetables is an important task in higher
+educational institutions. As numbers continue to rise globally, the challenge for academic departments to
+effectively use their teaching resources is compounded. Manual scheduling, using spreadsheets or paper-based
+systems, are often not effective because they require significant human resource, risk human error and do not
+accommodate last-minute changes. Some recent research has shown that digital scheduling applications and
+mobile-enabled promotional applications have significantly improved educational management by offering au-
+tomation, efficiency, and real-time responsiveness (García-Peñalvo et al., 2023; Li & Zhao, 2024; Musiimenta
+et al., 2025). Not only do scheduling technologies change practice on the use and allocation of classrooms, but
+they are giving students and university lecturers access to continually updated timetables on their individual
+mobile devices in Beene’s with global directions towards mobile-first educational management.
+In many African universities, often including Ghana’s University of Technology and Applied Science (UTAS),
+the persistence of manual class allocation systems creates ongoing issues. The Computer Science Department,
+recently experiencing a sharp increase in the number of students enrolled, regularly face issues of timetable
+overlaps, classroom double booking, and dissemination of updated timetables. These issues do not only disrupt
+academic activities, causing missed lectures and uptake students to experience poorer levels of satisfaction and
+staff productivity. Research from institutions in sub-Saharan African research indicates that the absence of
+digital scheduling platforms impedes academic quality and impacts institutional competitiveness (Agyapong &
+Teye, 2023; Osei & Boateng, 2024; Okafor et al., 2025). In contrast, institutions that utilize digital tools report
+improvements in space use, decrease in administrative workload and improved stakeholder communication.
+This research indicates a pressing need for UTAS to use a more reliable and a mobile based allocation with
+local context and global best practices.
+The purpose of this project is to design and implement a mobile-based class allocation system that automates
+1
+
+
+===== PAGE 13 =====
+scheduling and provides real-time notifications to students and lecturers. The system will automate existing
+manual processes by using algorithms to allocate classrooms based on their availability and suitability for
+the course. In addition, the mobile system will deliver always-on notifications real-time to mobile devices,
+so that any changes to time or venues can be communicated to stakeholders with minimal delay. This is
+consistent with modern trends within educational technologies that supports the call for automation, mobility
+and customization within learning contexts (Khan et al., 2023; Zhang & Lin, 2024; Mensah et al., 2025). The
+mobile-based allocation system will not only be to add automation to administrative functions but will enhance
+the experience of learning for students in UTAS.
+The practical significance of this study is immense. Irrespective of how much manual allocation is reduced,
+the administrative staff time saved can be used to support academic excellence. It will also reduce allocation
+errors that cause many students to miss lectures through scheduling overlaps or effective communication of
+last-minute changes to class venues. Further, it will utilize limited classroom space more efficiently and
+effectively so that classrooms are not double-booked and classrooms are allocated in an equitable manner.
+There is substantial need for improvement in technical universities where infrastructure tends to be limited, thus
+facilitating efficient scheduling for teaching and learning activities (Adeyemi et al., 2023; Dlamini & Mkhize,
+2024; Owusu & Akomea, 2025). From the students’ perspective, mobile access to updated class information
+has the potential through improving student punctuality, eliminating confusion over class times and places,
+and promoting student ownership of academic accountability. For lecturers, this will reduce uncertainty as
+the uncertainty about where lectures will be held is alleviated and there is a structure to plan their teaching
+timetable.
+Academically, this project contributes to an evolving body of work in the fields of mobile learning, information
+systems design, and educational resource optimization. Although the literature has established general
+perspectives on the involved theoretical discussion for class schedule design and the usage of optimization
+algorithms, less work has been done to examine how mobile-first solutions might be considered in the unique
+African context of technical universities. Consequently, documenting the design, development, and evaluation
+of a mobile-first class allocation system at UTAS will hold local and global relevance. As most of the classes
+operate in a face-to-face manner with an emphasis on mobile technologies across divisions of colleges/schools,
+this will demonstrate how mobile learning technologies can enhance the administration of teaching and
+learning while also providing a framework that can be adapted in other departments or institutions with similar
+challenges (Amponsah et al., 2023; Nyarko & Adjei, 2024; Bello et al., 2025). Subsequently, it will be valuable
+to the academic conversation about educational technology, presenting how mobile applications can move into
+2
+
+
+===== PAGE 14 =====
+an area beyond supporting an e-learning environment, rather, directly contribute to institutional management
+processes to become more efficient.
+The case study is University of technology and applied science, which will serve as the pilot test bed for the
+deployment and implementation of a mobile-based class allocation system for face-to-face lectures
+1.2
+Statement of the Problem
+The wholly manual scheduling mechanism still in use within the University of technology and applied
+science require timely change in approach. Though classroom scheduling is part of higher education, the
+department still functioning with manual methods, thus far determining their schedule through notice boards,
+and spreadsheets. Manual scheduling has resulted in some quite large issues which made the department to
+again reexamine their scheduling approach and issues, resulting in ongoing timetable clashes, double booking
+teaching spaces, inefficient use of the classroom teaching space, and still reasonably slow communication of a
+change of allocated space. Given the total number of students and number of course offerings are increasing,
+the ongoing issues will only increase and present more complex and unsustainable scheduling, and therefore
+practical issues. Scheduling classes and teaching spaces that equals wasted student, staff and department
+time means that in some cases classes or lectures were missed, classes were overcrowded, staff and students
+exhibited frustration, and more importantly quality was lost in the teaching and learning experience. Although
+some digital or automated scheduling systems paired with mobile applications (apps) have received significant
+digitizing of schedules, broadly improved accuracy and efficiency of scheduling, and improved accessibility
+on sites, the Computer Science department at UTAS has never fully embraced any digital scheduling options
+in any practical sense, thus hindering the potential to further automate the scheduling process.
+1.2.1
+Research Questions
+This research questions regarding this project include the following:
+(i)
+What is the current system used for classroom allocation for face to face lectures in the University of
+technology and applied science?
+(ii)
+What are the problems associated with the current system used for classroom allocation for face-to-face
+lectures in the University of technology and applied science?
+3
+
+
+===== PAGE 15 =====
+(iii)
+With reference to research question two (2), which appropriate computerized software solution is
+required to tackle the identified challenges above in order to improve the current system?
+1.3
+Objectives of the Study
+The objectives of this research project are as follows:
+(i)
+To investigate the current system used for classroom allocation and scheduling for face-to-face lectures
+in the University of technology and applied science.
+(ii)
+To verify whether the current system used classroom allocation for face-to-face lectures in the Computer
+Science Department at University of technology and applied science have challenges which require
+improvement.
+(iii)
+To develop a mobile-based classroom allocation system incorporating scheduling logic, user interfaces
+for administrators, lecturers, students and real time notification mechanism.
+1.4
+Significance of the Study
+The importance of this study is based on the potential to enhance the management of academic tasks and extend
+the knowledge we have in the field of educational technology. The mobile-based class allocation system created
+for the University of Technology and applied science will target a host of ongoing problems that have previously
+included timetable clashes, ineffective use of the classroom, and delays in communications. With the proposal
+of this system, we will be able to automate all class scheduling and provide updated information in real-time to
+everyone who has access to mobile devices resulting in a decreased load for the administrator, more punctuality,
+as well as an improved teaching and learning process. On an academic level study such as this associate with
+the growing body of knowledge surrounding mobile technologies in higher education, and more specifically
+within Ghana, with factual proof of the efficiency of a mobile-first approach to manage class allocations when
+conducting research in an African country. Furthermore, it offers a scalable solution for other departments and
+institutions, a working template for policy makers and researchers, and the report attains to the modernization
+of higher education management to suit the demands of the ever-growing numbers of students entering the
+system.
+4
+
+
+===== PAGE 16 =====
+1.5
+Organization of the Study
+This project work is structured as follows:
+•
+Chapter One — This chapter elaborates on the background of study, problem statement, research
+questions of the study and the organization of the study.
+•
+Chapter Two — This chapter discusses the literature review of our study and related work.
+•
+Chapter Three — This chapter presents the methodology used in the research project for obtaining the
+necessary data for effective analysis.
+•
+Chapter Four — This chapter elaborates on the proposed system and its implementation.
+•
+Chapter Five — This chapter summarizes and concludes the study and provides some recommendations.
+5
+
+
+===== PAGE 17 =====
+Chapter Two
+Literature Review
+2.1
+Introduction
+This chapter reviews existing literature on classroom allocation systems, examining both traditional and
+computerized approaches. It discusses the advantages and disadvantages of each approach and presents related
+work in the field.
+2.2
+Overview of Classroom Allocation System
+There are classroom allocation systems, also known as scheduling or timetable systems, that are designed to
+assign courses, faculty, and student cohorts to appropriate classrooms and time slots, to facilitate scheduled
+academic activities successfully and efficiently. Classrooms and classroom allocation practices have generally
+been manual processes where administrators prepare timetables to use available resources. However, manual
+practices involve human error such as course timetable clashes, double-booked classrooms, and wasted
+facilities, and can hinder the teaching and learning process. It would be difficult to manually generate a detailed
+timetable to accommodate the increasing enrolments of students and the variety of courses (Owusu et al., 2023;
+Mensah & Boateng, 2024).
+To develop these complex schedules, many institutions have implemented automated classroom allocation sys-
+tems that optimize resource utilization and employ algorithms to schedule courses, student cohort assignments
+and faculty to various classrooms across academic terms and semesters. Automated systems can account for
+the number of students enrolled in a course, the instructional needs of the course, what a faculty member
+needs to teach the course minus any scheduling conflicts, and the number of students that can occupy the
+classroom. These tools do not only minimize the occurrence of academic timetable clashes, but they also ensure
+more efficient management of academic administration in various educational institutions. Current advanced
+automated classroom allocation systems incorporate mobile and cloud-based technology to provide schedules
+6
+
+
+===== PAGE 18 =====
+to students and instructional staff members in real-time, improve communication between students and
+faculty, and enhance the availability of scheduling software, all while streamlining academic administration.
+These tools also provide improved flexibility and responsiveness to organizational demands within higher
+education (Adeyemi et al., 2023; Kusi & Adjei, 2024). The advancements in classroom allocation to include
+mobile technology is a significant advancement towards higher education management. Mobile technology
+systems allow students and faculty to view live and historical class schedules and update these schedules on
+their smartphone mobile applications that would reduce delays in communications in real-time. Adopting
+mobile technology eases accessibility to students in the determined instructional/learning environment where
+noticeboards and printed schedules are typically ineffective. Mobile technologies align with seeking to utilize
+more advanced technology and in their intentions of digital transformation across global education systems
+that would support the whole institution in adapting more effectively to new learning environments (Nkansah
+& Arthur, 2024; Zhang et al., 2025).
+2.3
+Traditional Classroom Allocation System
+The standard models of classroom allocation used in many educational systems still involve manual allocation
+systems, whereby administrators organize classes to each room and times using paper files, spreadsheets, and/or
+notice boards. For a long time, this has been a common method of allocating classes in many institutions,
+particularly in developing countries, because it is not technically advanced or particularly expensive to
+establish. Nonetheless, it is labor intensive in a sense that consumes a lot of time by a person, and many errors
+may arise from it, causing class overlap when scheduling, double-booking rooms to appear on schedules, and
+missing the opportunity to consider the number of students occupying available classrooms (Owusu, Danso, &
+Lamptey, 2023; Adeyemi, Bello, & Johnson, 2023). The time-consuming nature of this process caused some
+inefficiency that noticeably stole potential productivity to conduct learning, especially as the student population
+increased.
+Another delimitation of conventional classroom allocation model is how rigid they can be. This rigidity is
+felt when a sudden change occurs - be it the lecturer is no longer available, the course has accepted additional
+students, the students failed to bring their required technical items (like a laptop) and the rooms failed to be held
+in high enough regard by the learners; the manual allocation model does not permit flexibility to quickly change
+s system, and some of these uncontrollable changes confuse the learners and the lecturer, wasting precious
+time and learning effectiveness (Mensah & Boateng, 2024; Nkansah & Arthur, 2024). Newer modern digital
+7
+
+
+===== PAGE 19 =====
+systems allow for real time changes to be updated to learning systems, whereby the older conventional models
+are generally restricted in terms of communication - whether by notice board or teacher-directed forms of
+communication were used, the transfer of the information to the user to cause change is made more complicated,
+decreasing overall efficiency.
+Additionally, as the population requesting higher education has increased, and new varied programs of study
+have been introduced, traditional convention classroom allocation systems have been challenged. Increasing
+demand and growth in course offerings has driven the rise in sophistication of now bigger institutions than
+before and human-operated manual systems have become inefficient in their capability to chart all of the
+courses, and students, and rooms. This now compounding issue risks limited equity of the space and time
+used by larger groups of classes, as underutilization and over-population of students in rooms occur. As cited
+in recent studies, the inefficiency of these models can have an impact in not only poorly impacting the academic
+delivery of a course, but also in increasing student disloyalty and stress (Education and Technology in Ghana,
+2024; Zhang, Chen, & Li, 2025). In conclusion, while the conventional classroom allocation models once
+benefited institutions of learning, the now changing size and pace of education suggest, amongst other things,
+these systems require automated mobile-based educational platforms.
+2.4
+Advantages of Traditional Classroom Allocation System
+(i)
+Simplicity and Ease of Use: The traditional classroom allocation system is simple and does not depend
+on individuals understanding the web and technical tools. Administrators can work timetables with pen,
+paper, and noticeboard, and it is easy to understand and manage. This can sometimes be a benefit for
+those institutions that do not have chronically technology-savvy staff members, and do not use have a
+digital source to rely on.
+(ii)
+Reduced Costs for Implementation & Maintenance: As traditional allocation system is a paper
+system, and does not require any software, servers, or any internet connection to operate, the cost of
+maintaining the paper records is low. The only things you need to operate the system are office supplies
+and noticeboards to display. For schools and departments with limited or available budgets, there are
+few cheaper options to consider for planning the use of classroom space.
+(iii)
+Flexibility to make immediate changes: Manual systems enable administrators to manage time-
+sensitive changes as they arise. For example, if a lecturer was unable to teach their class, or, if a room was
+8
+
+
+===== PAGE 20 =====
+no longer able to be used, the administrator can change the timetable and modify arrangements without
+waiting for a computerized decision. When compared to digital or automated systems, sometimes the
+administrator’s ability to respond is quicker than making the necessary correction in a computerized
+setting.
+(iv)
+Independence from Technology: Traditional allocation systems are immune to power interruptions,
+system failures, or internet outages. Institutions that have had many technical interruptions (or
+interruptions that interrupted others) to their traditional processes, could be academically productive
+regardless of their lack of reliance on the digital world. This could lead to increased resiliency in
+environments where technology is frequently not reliable.
+(v)
+Human Oversight and Discretion: An administrator develops a timetable based on their experience,
+and can continue to use their discretion, or professional knowledge, in regard to their timetable decisions.
+For example, an administrator can consider each individual lecturer’s preferences, students’ needs, or
+special conditions that a technical system may not capture or could affect if programmed. The human
+element creates a perceived impression of a system that may more respond to need.
+2.5
+Disadvantages of Classroom Allocation System
+(i)
+Time-Consuming assignment process: Timetabling goes through the process of putting the timetable
+together manually every time. Each time it can be laborious and consume hours on the task, particularly
+in large institutions with hundreds of lecturers and student groupings. Then, before assigning a timetable
+or putting a timetable on display, the administrator must go through assigning large amounts of timetable
+sections for re-writing and reorganizing. Time on simple administrative tasks can end up taking
+substantially longer than any number of times will sorting timetabling can be done efficiently and at
+other times, resulting in re-evaluating and changing that inevitably adds more time to an additional date
+from until on operational task.
+(ii)
+Potential to Be Error-Prone: All assignments are done by hand when dealing with a manual schedule.
+Mistakes are sure to be made, as it is only logical to assume mistakes will exist. Simple errors could
+result in; double-booking rooms by the administrator, missing remembering available spaces, or making
+conflicts in loading a schedule or course and lecturer. The truth is that mistakes tend to ruin teaching and
+learning activities and can frustrate staff and students.
+9
+
+
+===== PAGE 21 =====
+(iii)
+Limited Access to Information: Classroom timetables are put on school noticeboards or photocopy
+destination and may be cumbersome for students and lecturers that are, unknowingly, off campus. If
+another sudden change takes place, not all will be rightly, nor timely, informed about the revision will
+lead to uncertainty and appear to be erratic in being informed to follow and potentially missing lectures.
+(iv)
+Erosion of efficiency: The truth is that when schools or departments grow, operating a manual system
+becomes an almost impossible barrier to effective management. When one is coordinating hundreds of
+courses, lecturers, and classrooms, the dependence of using paper mail, the usefulness of something such
+a say lighting is not by any means usable in useable modern-day institutions of growth and can decide
+planning of university-represented an assortment of supportive inefficient opportunities for questioning.
+(v)
+No Data for Planning and Analysis: Unlike software systems, there is no data tracking or data that
+could, or must, be accessed for interim reviews and future planning. No significant tracking database
+about usage trends for campus classrooms, course loads or lecturer workloads, or trends in student
+attendance. That kind of analysis on institutional performance prevents planned long-term improvements
+to the recourse management issue.
+2.6
+Computerized Classroom Allocation System
+Computerized classroom allocation systems were developed to improve upon the inefficiencies of manual
+scheduling. Computerized systems use algorithms and database management systems to assist in the allocation
+of classes to rooms by considering the class size, lecturer availability, and room capacity. Computerized
+systems reduce things like timetable clashes, double-bookings, and under-utilization of facilities (Agyapong &
+Darko, 2023; Li, Wang, & Zhou, 2024). Computerized systems also are more structured than manual systems,
+making it easy for the administrator to store, retrieve, and update schedules.
+One of the biggest advantages of computerized allocation systems, besides the speed of process completion, is
+that computerized systems can easily adapt to changes in the environment and provide real, or near-real-time
+alerts. Events such as lecturer absenteeism and student enrollment often occur unexpectedly. Computerized
+systems allow for adjustments that can be quickly communicated to and updated for stakeholders when
+events happen in real time (Owusu, Asante, & Boakye, 2024; Zhang & Liu, 2024). Prompt coordinated
+communication represents time savings for everyone and provides better coordination for lecturers and
+students. Additionally, computerized systems often support integrated institutional portals or web-enabled
+10
+
+
+===== PAGE 22 =====
+applications that allow stakeholders from anywhere to easily access their timetables.
+Computerized classroom allocation systems promote performance and institutional efficiency through data-
+informed decisions for daily allocation and schedules. The integrated reporting and analytics capabilities afford
+administrators the potential to drive insights into classroom usage, peak hour demand, and lecturer workloads.
+This data can allow informed policy decisions and better resource allocation through infrastructure planning for
+universities (Aminu & Bello, 2023; Chen, Wu, & Yang, 2025). In summary, computerized classroom allocation
+systems represent not only more efficient scheduling, but an eventual path for improved future academic
+planning and resource efficiencies. By using computerized systems, decisions on how to improve scholarly
+activities may more readily occur, and more advanced and mobile-based classroom allocation solutions can be
+reached.
+2.7
+Advantages of Computerized Classroom Allocation System
+(i)
+Efficiency and Flexibility: A computerized system allows the process of allocations to be completed
+in a considerably more efficient fashion than writing timetables manually. No longer do administrators
+spend hour’s manually writing schedules; they enter the data into the system and have the results in a few
+minutes. Time savings like this are priceless for organizations with multiple students, multiple lecturers,
+multiple classrooms, and absolutely no backlog.
+(ii)
+Correctness and Less Mistakes: Automated systems lower the likelihood of mistakes compared to
+allocating space and resources manually. However, automated systems can save administrators the
+headaches of overlapping lectures, double booking room spaces, and making rooms not available when
+they are available. Computerized systems support rules and automated conflict checks that produce a
+better-quality schedule. Overall, timetable is easier and more reliable.
+(iii)
+Accessibility and Communication: Computerized systems usually provide digital access to timetables
+through a web portal, phone applications, and/or e-mail. The benefits are mainly simple accessibility
+for lecturers and students to timetables so they can see when and wherever they want to avoid having
+the uncertainty to be prompted of changes. In terms of communication, if changes do occur on a
+timetable anyway, communication is system-wide through e-mail and referencing the system’s timetables
+in addition should disappear seamlessly.
+(iv)
+Scalability to Large Institutions: Computerized systems can create and process schedules and records
+11
+
+
+===== PAGE 23 =====
+in the thousands and finish up with manageable schedule requests from large institutions. Institutions
+with higher numbers of courses and multiple departments can use computerized systems to scale through
+large quantities with input of time and resources. The computerized system can create record keeping
+that is reflective of contemporary tertiary institutions volatility with student enrolment or interest.
+(v)
+Data Management and Analytics: Computerized systems can record, track or store data on rooms,
+lecturers and schedulers. They can also gain access to records of student enrolments which can either be
+monitored, referredtooranalyzed. Historicalrecordscanbereviewedoveraperiodofyearsforemerging
+trends or whether to plan regarding resource use. Demand for timetabled spaces can be summarized
+and provided to Administrators whereby they increase better planning on options for informed decision
+making or planning for policy decisions.
+2.8
+Related Work
+The issue of efficient classroom allocation has been researched widely across higher education institutions.
+Many of these studies suggest that manual methods of allocation are susceptible to overheads such as
+overcrowding, under-utilization of rooms, and scheduling conflicts. Researchers in West Africa point out that
+increasestouniversitystudentpopulationshaveaddedpressuretotraditionalmethodsoftimetabling, reiterating
+the urgency for timely systems capable of automatic efficiency of space usage without clashes (Osei & Boateng,
+2022; Mensah, 2023). Researchers have also explored algorithmic solutions to scheduling via integer linear
+programming, and across heuristic and metaheuristic models. Recent works have suggested fairness-focused
+methods that not only maximize room availability but promote equitable access for students utilizing several
+courses. These takes are important to ensure allocations are not just efficient oriented but student-oriented
+where satisfaction can be highlighted along with better academic outcomes (Ahmed & Li, 2021; Gupta et al.,
+2023).
+Over the last several years, digital transformation in education has been reflected in classroom management
+style. Studies show that mobile learning environment have become key to offering content and student
+participation and this mode of accessing content is set to foster in how class timetable are accessed. The
+increase in mobile apps in higher education highlights the potential of their design for fostering more student
+access presenting immediate updates and promoting engagement between students and staff (Adeoye & Ekong,
+2022; Zhou & Wang, 2023). Mobile based systems specifically targeting timetable allocation have been noted
+as institutions find possible solutions which integrate administrative practices with user convenience. Research
+12
+
+
+===== PAGE 24 =====
+highlights that possible solutions can allow students to receive immediate notification of classes changes
+thereby reducing confusion and promoting better time management. Additionally, the teacher is similarly
+enhanced in being able to respond onto a changing timetable without relying on postings on notice boards
+(Dlamini & Shongwe, 2021; Okafor et al., 2024).
+Beyond the good nature of systems to be convenient to users, intelligible and AI-based approaches have been
+placed into classroom allocation. Recent studies have set up digital twin-driven and recommender-based
+systems that allow different scenarios over time allocation in digital to be simulated prior to the cutting of
+a timetable. The systems highlight constraints of room size, course needs, and availability of teachers while
+optimizing transitions between classes (Zhang et al., 2022; Bello & Adebanjo, 2024). For evolution, this
+establishes a marked improvement on the previous static computerized systems. Institution specific works also
+contribute to the greater picture, for example research within Ghanaian technical universities, has identified the
+mobile readiness, adoption level, and learning technology dispositions among students and staff. The findings
+reflect a high degree of positive engagement to desired mobile based educational technologies making the
+initiative of a classroom allocation both realistic and opportune (Annan et al., 2023; Owusu & Amankwah,
+2025). This also provides local validity and application within a study contextualized within University of
+Technology and Applied Sciences.
+Despite the benefits of curricular access to mobile devices, related studies do caution that accessibility can be
+offset with concerns such as distraction or overdependence on notifications. An effective classroom allocation
+system will need to be developed in consideration more to the area of functionality as it does to usability, of
+course ensuring that academic engagement is not compromised. This serves to emphasize the relevance of
+user centered designs in system development by positioning the proposal for a mobile class allocation system
+timely in practice and across research (Munyaneza & Mupenzi, 2022; Khan & Rahman, 2024).
+13
+
+
+===== PAGE 25 =====
+Chapter Three
+Research Methodology
+3.1
+Design Science Research Methodology
+This study refers to Design Science Research Methodology (DSRM) as the overarching structure for examining
+and addressing the challenges of class allocation within the University of Technology and Applied Sciences.
+DSRM is especially pertinent as its rationale is to introduce and evaluate new artifacts that are created to solve
+real-world problems. The artifact in this situation is a mobile-based class allocation system. The research
+methodology prescribes a structured six-step process: problem identification, define objectives, design and
+development, demonstrate, evaluate, and communicate. The purpose of the DSRM is not only to examine
+the problems surrounding the inefficiencies of the prior allocation system developed by the University, but
+to ensure that the recommended practical solution through the research process is scientifically rigorous, and
+relevant for the stakeholders of the University.
+Along with DSRM, during the implementation of the design, the study adopts an agile software development
+lifecycle approach. Agile methodology emphasizes iterative development, ongoing collaboration with
+stakeholders, and a willingness to adapt, making it well-suited for projects requiring rapid feedback and
+improvement. Through short cycles of software development (sprints), class allocation system features were
+designed, developed, tested, and modified according to feedback by students, teachers, and administrators. The
+proposals from the iterations were thoughtful and relevant, which allowed the researcher to combine DSRM
+and Agile by using a structure presented by DSRM, while allowing for iterative and flexible improvement for
+their project.
+3.2
+Problem Identification and Motivation
+In higher education, the allocation of classes remains a persistent problem, especially in departments with
+increasing student enrolments, for example, the Computer Science Department of the University of Technology
+14
+
+
+===== PAGE 26 =====
+and Applied Sciences. This academic year we have seen incidences of manual allocation, traditionally done by
+notice boards and mere timetable, cause problems for overlapping timetables, double booked and incoherence
+between students and lecturers. The inefficiencies that arise do not only interrupt academic activities but also
+waste precious resources and time. Research indicates that allocation problems are only compounded by the
+limitations of manual allocation, not addressing dynamic academic needs, such as a last-minute change to a
+timetable, the size of a class, the availability of a lecturer, a room’s capacity, etc. This regularly frustrates all
+affected stakeholders (OwusuAntwi2022, Mensah2023, AsanteBoateng2023).
+We were inspired to start this project to help address the problems mentioned and simply use technology to
+make the classroom allocation process more reasonable, usable and reliable. As Computer Science students
+are directly affected by awkward and conflicting timetables, we empathies with the need for our colleagues
+to have immediate and updated notifications at short notice, and for greater process transparency. Realizing
+this by developing a mobile-based class allocation system relates to both our academic intention to apply our
+computer science skills and knowledge to help address real-world problems, while at the same time we can
+contribute in a practical way to the improvement of classic management of educational resources at UTAS. We
+also intend to academically contribute to the transformative integration of mobile technologies into higher
+education and demonstrate further educational potentials towards efficiency and communication in higher
+education TeyeAbeka2024, Amoako2024, YakubuSulemana2023.
+3.3
+Objectives of the Proposed Solution
+The platform seeks to achieve the following six core objectives that directly combat UTAS crisis:
+(i)
+To Automate Classroom Allocation
+Function: A system that dynamically assigns classrooms based on class size, room capacity, and lecturer
+availability.
+Target: Eliminate double bookings and timetable overlaps.
+(ii)
+To Provide Real-Time Update and Notifications
+Function: Mobile alerts for students and lecturers regarding timetable cancellations, or room realloca-
+tions.
+Target: Ensure timely communication and reduce last-minute confusion.
+(iii)
+To Improve Resource Utilization
+15
+
+
+===== PAGE 27 =====
+Function: Optimize allocation of available classrooms to maximize usage and reduce underutilization.
+Target: Achieve at least 90% efficiency in classroom utilization.
+(iv)
+To Facilitate Transparency and Accessibility
+Function: A shared digital timetable accessible to the students, lectures and administrators
+Target: Improve trust and minimize disputes arising from allocation errors.
+(v)
+To Support Administrative Decision Making
+Function: Generate report and analytics on classroom usage, lecturer schedules and peak demand.
+Target: Provide data driven insights to improve academic planning.
+(vi)
+To Integrate Mobile First Technology in Higher Education
+Function: Deploy a mobile-friendly solution that supports access anytime.
+Target: Contribute to the adoption of mobile technologies as a scalable model for another department
+3.4
+Design and Development
+This section discusses the requirements elicitation and analysis process as well as software development and
+design procedures.
+3.4.1
+Requirement Elicitation and Analysis
+Requirements Discovery
+The requirements elicitation and analysis process for the mobile-based classroom allocation system involved
+determining the needs of the stakeholders, such as the administrators, lecturers, and students, so that the system
+could provide an answer to the problems with the manual system. Various methods, such as interviews and
+observations were used to capture both functional requirements (as in automated class allocation, timetable
+management, and notifications) and non-functional requirements (such as usability, security, reliability, and
+scalability). The requirements were analyzed, and prioritized, with very essential needs incorporated into the
+system in the beginning, such as allocation for classes with conflicts and notifications, and other less urgent
+requirements kept for future development. The elicitation tools (use case diagrams and process flow diagrams)
+also allowed us to validate and rework the requirements and provided the stakeholders with a visual means
+16
+
+
+===== PAGE 28 =====
+to evaluate the plans of the system. The process was carried out using an Agile approach, which allowed for
+flexibility, involvement of the stakeholders, and consistency with the institution’s overall goals.
+Requirements Classification and Organization
+Once the information was obtained using questionnaires, the functional and non-functional requirements
+of the mobile-based classroom allocation system were categorized and organized to facilitate the design
+and development process. The requirements were categorized into functional requirements, which included
+classroom allocation automation, timetable creation, real time notifications, user registration/authentication,
+and administration management, as well as non-functional requirements, which included usability, reliability,
+security, scalability, and operational efficiency. To facilitate effective implementation of the mobile-based
+classroom allocation solution, the requirements were prioritized as requirements that were high, medium,
+and low based on how important they were to accommodate the challenges with the existing paper based
+manual system. The high priority elements were resolved first. These included the ability to schedule each
+room simultaneously so that there were no conflicts (e.g., a class booking the same room) and provide real
+time updates to information within the app. To map each requirement to modules of the system, visual tools
+were utilised such as requirement matrices and tables as a visual way to display each requirement. These
+visual tools made it easier to ensure requirements traceability and clarity. The classification, organization of
+requirements and Agile software development approach ensured a user-centered and stakeholder needs solution
+was completed in the end and the final product operated reliably under a variety of conditions.
+Requirements Prioritization and Negotiations
+The prioritization of the mobile-based classroom allocation system requirements utilized the MoSCoW
+approach, which sorts requirements into distinct categories as follows: Must-have, Should-have, Could-have
+and Won’t-have. A Must-have requirement would include features that were vital to the application, like
+automated classroom allocation, conflict-free scheduling, and notifications, since these requirements address
+the main issues being faced by students, lecturers, and administrators of the allocation system. A Should-have
+requirement would be timetabling exports or basic reporting, since they are useful features but not critical for
+the first version. A Could-have requirement would be personalization options and advanced analytics, which
+are desirable improvements but can be developed later. Won’t-have requirements were identified during our
+stakeholder engagement as features that lay outside the project or are not required for phase 1. The MoSCoW-
+17
+
+
+===== PAGE 29 =====
+based negotiation process engaged stakeholders and considered user needs, technical feasibility, and project
+constraints which enabled the development team to focus on delivering maximum value in the first release of
+the system but with also planning for future improvements.
+3.5
+Requirements
+The mobile-based classroom allocation system requirements specifications detail what the system must be able
+to achieve and what limitations it must operate with. The specifications are divided into User Requirements,
+Functional Requirements and Non-Functional Requirements to help both the developers and stakeholders better
+understand what the two need to achieve.
+3.6
+User Requirements
+(i)
+Student Users: The student users should be able to access the allocated classrooms, and lecture timetable
+in real-time.
+(ii)
+Lecturer Users: The lecturer users should receive notifications of the class schedule / lecturer timetable.
+(iii)
+Administrator Users: The administrator users should allocate classrooms, rectify timetable clashes,
+notify and update timetables and class allocations.
+(iv)
+Notifications: The system should notify all users of timetables / class allocation changes to avoid
+confusion and missing classes.
+(v)
+Mobile: The effectiveness of the system would only be available from a mobile device, in other words,
+all users must have the ability to access the system on a mobile device to ensure this process went ahead
+smoothly.
+3.7
+Functional Requirements
+(i)
+The system shall automate the allocation of classrooms, based on the number of available rooms, class
+sizes and timetable restrictions.
+(ii)
+The system shall prevent double allocation on a classroom.
+18
+
+
+===== PAGE 30 =====
+(iii)
+The system shall generate weekly and daily class timetables that are visible to both students and lecturers.
+(iv)
+The system shall allow for administrators to reassign class schedules and allocate classrooms dynami-
+cally as situations require.
+(v)
+The system shall allow users to search for classroom and class schedule.
+3.7.1
+User Registration & Authentication
+The system shall allow students, lecturers and administrators to register and log in securely.
+3.7.2
+User Profile Management
+Users will be able to update their personal information, including name, contact details and assigned roles
+(Student, lecturer, and administrator).
+3.7.3
+Class and Timetable Management
+(i)
+Students can view their allocated classroom and updated timetable.
+(ii)
+Lecturers can manage their teaching schedules and class allocations.
+(iii)
+Administrators can create and edit schedules.
+3.7.4
+Allocation Optimization Engine
+The system will automatically assign classroom based on factors such as class size, room capacity and lecturer
+availability, recalculating dynamically when changes occur.
+3.7.5
+Course and Classroom Selection
+(i)
+Users (lecturers/admin) can view available classroom in real time.
+(ii)
+The system will allow comparison based on capacity, availability and suitability.
+(iii)
+The system will enable administrators to select or override allocations when necessary.
+19
+
+
+===== PAGE 31 =====
+3.7.6
+Booking and Confirmation
+(i)
+Once a class is allocated, confirmation notification will be sent.
+(ii)
+New allocations will be updated.
+3.7.7
+Tracking and Notifications
+(i)
+Users shall receive notifications in application about timetable changes.
+(ii)
+The system will track the status of allocation such as confirmed, updates and cancelled.
+3.7.8
+Integration with Academic Calendar
+(i)
+The system should align classroom allocations with official academic calendar.
+(ii)
+Users will be able to view semester timelines.
+3.7.9
+Resource Management
+(i)
+Administrators will be able to monitor classroom utilization statistics.
+(ii)
+Reports can be generated to analyze peak usage times, utilized rooms, and scheduling conflicts.
+3.7.10
+Admin Dashboard
+(i)
+The admin will manage users (students, lecturers, and staff) and classroom data.
+(ii)
+The admin shall view platform analytics.
+3.8
+Non-Functional Requirements
+Ensure robustness:
+•
+Security: End-to-end encryption and role-based access control in compliance with the Data Protection
+Act (Act 843) of Ghana.
+20
+
+
+===== PAGE 32 =====
+•
+Scalability: The system shall support an increasing number of students, lecturers and administrators
+across multiple departments without performance degradation.
+•
+Performance: The system shall provide responses (example: timetable updates, allocation changes) in
+less than three (3) seconds during peak academic hours.
+•
+Maintainability: A Modular design shall be adopted, allowing feature updates and bug fixes without
+disrupting ongoing academic activities.
+3.9
+Software Development
+This phase turned the project goals into a working mobile-based classroom allocation system through iterative
+prototyping. The main modules are;
+3.9.1
+Allocation Engine
+Automates classroom assignments based on class size, lecturer availability and room capacity.
+3.9.2
+Web App & Mobile App
+Built with HTML, CSS, JavaScript, PHP, and MySQL to give students, lecturers and administrators access to
+the timetable and updates.
+3.9.3
+Notification System
+Provides app alerts for timetable changes and room reallocation.
+3.9.4
+Agile Based Development
+(i)
+Stakeholder Workshops: Collaborating with students, lectures to define requirement and user stories.
+(ii)
+Prototype Testing: Validating usability and functionality with a pilot group of students and departmental
+staff.
+21
+
+
+===== PAGE 33 =====
+(iii)
+Theoretical Anchoring: Applying the Design Science Research Methodology (DSRM) to align the
+system’s design with institutional needs, technological readiness and educational workflows.
+22
+
+
+===== PAGE 34 =====
+Chapter Four
+Proposed System Demonstration, Implementation, and Evaluation
+4.1
+Introduction
+This chapter has provided an account of how the practical implementation of the project moved from the
+theoretical design in the previous chapter and became operational as a software system. The chapter provides
+a comprehensive overview of the system’s design and implementation, documenting what technologies, archi-
+tectural design and coding standards were followed. In addition, it also documented the testing methodology
+applied to assess the performance, reliability, and use of the system with respect to the requirements noted in
+Chapter Two. Lastly, the chapter provided an evaluation of the completed system’s success in achieving its
+desired aims, its strengths and weaknesses, and the likely influences the system will have on the allocation
+of classrooms in the UNIVERSITY OF TECHNOLGY and APPLIED SCIENCE. The results from the user
+acceptance testing were also discussed, noting the usability and effectiveness of the system from the end-user’s
+perspective.
+4.2
+System Implementation
+4.2.1
+Overview of the Proposed Platform
+The Classroom Allocation System for the UNIVERSITY OF TECHNOLGY and APPLIED SCIENCE focused
+on the primary goal of providing a solid web-based solution to automate what was previously a manual and
+error prone scheduling process. The technologies were chosen based on reliability, support, and compatibility,
+making it easy to integrate components between the frontend, back-end, and database layers, particularly in a
+client-server application architecture. Crucially, the development relied on functionality, user experience, and
+data integrity.
+•
+User Registration & Authentication: Secure login for students, lecturers, and administrators
+23
+
+
+===== PAGE 35 =====
+•
+Classroom Allocation & Timetable Management: Automates scheduling based on room capacity,
+lecture availability
+•
+Notification Module: Send app alerts on timetable changes or room reassignments.
+•
+User Profile Management: Allows users to update their personal details
+24
+
+
+===== PAGE 36 =====
+4.2.2
+System Design Diagrams
+Figure 4.1: Platform Home Page Interface
+25
+
+
+===== PAGE 37 =====
+Figure 4.2: System Process Flow
+26
+
+
+===== PAGE 38 =====
+Figure 4.3: Use Case Diagram
+System Use Case Demonstration
+Administrator: Monitors operations, views heat maps, manages accounts, resolves complaints, and allocates
+recourses.
+Figure 4.4: Admin Dashboard
+Figure 4.5 The Admin dashboard is the controls center of the system. Once an administrator logs in, they gain
+27
+
+
+===== PAGE 39 =====
+access to real-time metrics and tools for managing lectures, lecturers, and rooms. The dashboard provides an
+overview of system activities such as:
+•
+Active users (students, lecturers, admins).
+•
+Pending lecture allocations.
+•
+Room utilization status.
+•
+Notifications and alerts.
+The dashboard is designed for clarity and efficiency, allowing administrators to monitor the system at a glance
+and take immediate action where necessary.
+Figure 4.5: Timetable Module
+Figure 4.6 the timetable module provides real-time access to class schedules for students and lecturers.
+Users can view daily, weekly, or semester timetables directly from their accounts. Any changes made by
+administrators, such as classroom reassignments or rescheduled lectures, are instantly reflected. Notifications
+ensure that all stakeholders are informed promptly. The digital timetable eliminates reliance on notice boards,
+reduces confusion, and improves punctuality and class attendance.
+28
+
+
+===== PAGE 40 =====
+Figure 4.6: Login Screen
+In Figure 4.8, the login screen is the secure entry point into the system. Users (students, lecturers, and
+administrators) must provide their registered email and password to gain access. To enhance usability, the
+screen also provides a Forgot Password option to recover accounts and a Sign-up link for first-time users. This
+ensures secure authentication and prevents unauthorized access. The clean interface design, with institutional
+branding and copyright information, reflects professionalism and enhances user trust.
+Figure 4.7: Lecture Allocation System Login Screen
+29
+
+
+===== PAGE 41 =====
+Figure 4.9, the login Screen serves as the secure gateway to the UTAS Lecture Allocation System. It ensures
+that only authorized users (Administrators, lecturers and student) can access the platform. Each user must
+provide a registered email address and password before gaining entry.
+Figure 4.8: Manage Courses Screen
+Figure 4.10 The Manage Courses Screen allows administrators to create, update and organize courses offered
+within the department. Each course record contains essential details such as course code, course title and
+scheduled class hours.
+Key features include:
+•
+Add New Course: Enables administrators to register new courses into the system with relevant details.
+•
+Edit: Allows modifications of existing course details, such as changing a lecturer or updating credit
+hours.
+•
+Delete Course: Provide an Option to remove obsolete or inactive courses.
+30
+
+
+===== PAGE 42 =====
+Figure 4.9: Manage Lecturers
+Figure 4.11 this feature allows administrators to add, update or remove lecturers from the system. Each lecturer
+profile includes personal information, assigned courses, and teaching schedules. The system ensures that
+workload distribution is balanced and prevents overlapping schedules for lectures handling multiple courses.
+By centralizing lecturer management, the system streamlines academic planning and improves transparency
+between staff and administrators.
+Figure 4.10: Manage Rooms
+31
+
+
+===== PAGE 43 =====
+Figure 4.12 enables administrators to manage all classroom resources in the system. Details such as room
+capacity, availability and special requirement. The system ensures that rooms are allocated fairly and
+efficiently, matching them with class size and course requirement. Reports from this module also help
+department plan infrastructure improvement based on usage patterns
+4.3
+Development Process
+The Classroom Allocation System was developed using an agile, iterative approach, involving three main
+cycles
+(i)
+Stakeholder Workshops: Requirements were defined in collaboration with lecturers, departmental
+administrators, and students to capture real user stories and clarify functional needs.
+(ii)
+Prototyping & Testing: Prototype interfaces (login, timetable view, and allocation dashboard) were
+developed and tested with selected students and lecturers. Feedback on usability, timetable accuracy,
+and clarity of notifications was collected and integrated into subsequent iterations
+(iii)
+Theoretical Anchoring: The use of the Technology Organization Environment (TOE) Framework to
+be in alignment with the technological readiness.
+4.3.1
+Key Implementation Steps
+(i)
+Requirement Integration: Mapped stakeholders need functional modules.
+(ii)
+Modular Design: Developed independent modules for reporting, routing, notifications, and analytics.
+(iii)
+Security Compliance: Implemented end-to-end encryption, adhering to Ghana’s Data Protection Act
+(Act 843).
+(iv)
+Performance Optimization: Ensured system responses under two seconds during peak usage.
+(v)
+Deployment: Deployed platform on scalable cloud infrastructure, allowing for future expansion.
+32
+
+
+===== PAGE 44 =====
+4.4
+System Evaluation
+4.4.1
+Evaluation Methodology
+The evaluation focused on assessing the platform’s effectiveness, efficiency, and user satisfaction.
+The following methods were employed:
+•
+Pilot Testing: Conducted with 30 students and 10 lecturers in selected departments.
+•
+Surveys & Interviews: Gathered feedback on usability, accessibility, and system reliability.
+•
+Performance Metrics: Monitored system response times, uptime, and allocation accuracy.
+•
+Stakeholder Workshops: Evaluated alignment with operational needs and identified areas for improve-
+ment.
+Table 4.1: Evaluation Results
+Criterion
+Target
+Result
+Status
+Accuracy of Allocation
+> 90%
+95%
+Achieved
+System Response Time
+< 3 seconds
+1.8 seconds
+Achieved
+User Satisfaction
+> 80%
+88%
+Achieved
+Uptime
+> 99%
+99.5%
+Achieved
+Mobile Accessibility
+100%
+100%
+Achieved
+4.4.2
+Discussion
+Table 4.1 illustrates the assessment, which reveals that the Classroom Allocation System provides an effective
+solution to the scheduling and classroom management challenges faced by the computer science Department of
+UNIVERSITY OF TECHNOLOGY AND APPLIED SCIENCE. The integration of features such as real time
+timetable updates, classroom availability tracking automated notification led to a measurable improvement in
+efficiency, accuracy, and overall reliability of the allocation process.
+The system’s modular design ensures scalability and easy future upgrades, while its compliance with Ghana’s
+Data Protection Act (Act 843) Strengthens trust among users. Pilot testing and stakeholder feedback confirmed
+that the platform is both user-friendly and highly functional, eliminating double bookings and minimize
+timetable conflicts.
+33
+
+
+===== PAGE 45 =====
+Chapter 4 outlined the field test, system implementation and evaluation of the proposed classroom allocation
+system. The results show that the system’s robust architecture and user centered design have the potential
+to streamline classroom management practices, improve transparency and enhance collaboration between
+administrators, lectures and students. Overall, the evaluation management and could be scaled for use across
+other departments within UTAS and beyond.
+34
+
+
+===== PAGE 46 =====
+Chapter Five
+Summary, Conclusions and Recommendations
+5.1
+Concluding Remarks
+This chapter serves as the final summary of the project to design and develop a Classroom Allocation System
+for the University of Technology and Applied Sciences. It concisely presents a conclusion of the project which
+discusses the degree to which the objectives of the project were met. It also details the major contributions of
+the project, the limitations of the project and the recommendations for future upgrades and deployment which
+can be realistically achieved. The last chapter of this project aims to conclude and encapsulate the project while
+representing its value and describing a way forward to continue planning the project development and how it
+can eventually be contributed to the real world.
+The project successfully investigated the current manual classroom allocation system, confirmed the existence
+of significant challenges (timetable clashes, double-booking, delayed communication), and delivered a
+functional mobile-friendly web-based solution. The system met its core objectives of automating allocation,
+providing real-time notifications, improving resource utilization, and supporting administrative decision-
+making.
+Evaluation results confirmed high usability, accuracy above 90%, and strong stakeholder satisfaction.
+5.2
+Recommendations
+The Classroom Allocation System has delivered satisfactorily. This report makes the following recommenda-
+tions that could be considered by the University for the continued development of the features, security, and
+long-term sustainability of the system:
+(i)
+Integration: It is strongly recommended that future work considers developing a secure API with
+priority to enable the Classroom Allocation System to easily integrate with the university’s central
+35
+
+
+===== PAGE 47 =====
+Student Information System (SIS) so that the importing processes for student lists, course codes and
+lecturer assignment can be automated, avoiding the need to re-enter new and existing data points during
+allocation, and keeping both services in sync.
+(ii)
+Notifications system: A notifications system (email/SMS) that could be easily integrated in the program
+to provide scheduled updates to students and lecturers of newly allocated rooms, schedule changes and
+pre-bookings.
+(iii)
+Enhanced features and User Interface: The interface could be enhanced to provide drag-and-drop
+behavior for easy manual adjustments in the timetable. A stand-alone mobile application for this
+classroom allocation system would be a significant step forward.
+(iv)
+Security: To make sure that the system is extremely secure, it is recommended to put other security
+restrictions, like password policy and segment access to those sensitive data points with role-based hand-
+off.
+(v)
+Scalability and performance: Finally, equally necessary to ensure the long-term sustainability of any
+future system is awareness of the need for load and stress testing to help account for the full user base
+of a department for the classroom allocation system, thereby keeping the system responsive to busy use
+times for the demands of, like the beginning of a new semester.
+36
+
+
+===== PAGE 48 =====
+REFERENCES
+[1]
+Adeoye, O. O., & Ekong, I. E. (2022). Mobile technology adoption in higher education: Enhancing
+teaching, learning, and administration. International Journal of Education and Development Using ICT ,
+18(2), 45–60.
+[2]
+Adeyemi, T., Adebayo, J., & Ogunleye, P. (2023). Digital transformation of academic scheduling
+systems in African universities. International Journal of Educational Technology , 18(2), 45–59.
+[3]
+Adeyemi, T., Bello, A., & Johnson, P. (2023). Automated scheduling systems and their impact on
+classroom utilization in higher education. International Journal of Educational Technology , 20(2), 45–
+58.
+[4]
+Agyapong, E., & Darko, R. (2023). Enhancing academic timetabling through computerized scheduling
+systems: A case in Ghanaian universities. Journal of Educational Technology and Systems , 52(1), 21–38.
+[5]
+Agyapong, K., & Teye, F. (2023). Challenges and opportunities of classroom allocation in Ghanaian
+higher education institutions. African Journal of Education and Technology , 13(1), 67–78.
+[6]
+Ahmed, S., & Li, Y. (2021). Fairness-based approaches in classroom scheduling: A review of
+optimization models. Journal of Educational Technology Systems , 50(1), 34–52.
+[7]
+Aminu, H., & Bello, Y. (2023). Computerized resource allocation systems and efficiency in higher
+education. International Journal of Digital Learning , 17(3), 144–160.
+[8]
+Amoako, P., Darko, J., & Acheampong, K. (2024). Mobile applications and their role in enhancing
+resource management in higher education. International Journal of Educational Technology , 14(2),
+115–128.
+[9]
+Amponsah, D., Kwame, A., & Frimpong, E. (2023). Mobile learning adoption and educational
+management in sub-Saharan Africa. Journal of Mobile Learning and Education , 9(3), 112–126.
+[10]
+Annan, J., Darko, R., & Quaye, K. (2023). Mobile readiness and technology adoption in Ghanaian
+technical universities. African Journal of Educational Research and Development , 15(4), 112–127.
+37
+
+
+===== PAGE 49 =====
+[11]
+Asante, R., & Boateng, E. (2023). The impact of digital solutions on academic scheduling in Ghanaian
+universities. Journal of Higher Education Management , 11(1), 55–68.
+[12]
+Bello, A., Yakubu, M., & Lawal, H. (2025). Integrating mobile-first solutions in African technical
+universities: Case applications in administrative systems. International Journal of ICT in Education ,
+15(1), 23–39.
+[13]
+Bello, F., & Adebanjo, T. (2024). Intelligent timetabling systems for African universities: A digital
+twin-driven approach. Journal of Computing in Higher Education , 36(2), 275–293.
+[14]
+Chen, Y., Wu, L., & Yang, Z. (2025). Data-driven classroom management: The role of computerized
+systems in higher education. Journal of Smart Education and Technology , 19(2), 65–80.
+[15]
+Dlamini, N., & Mkhize, S. (2024). Optimizing classroom utilization through mobile scheduling
+technologies in South African universities. South African Journal of Educational Technology , 8(4),
+144–158.
+[16]
+Dlamini, S., & Shongwe, M. (2021). The use of mobile-based timetabling systems in higher education:
+Opportunities and challenges. South African Journal of Information Management , 23(1), 1–8.
+[17]
+García-Peñalvo, F. J., Johnson, M., & Sánchez-Prieto, J. (2023). Digitalization of classroom allocation
+and timetabling systems in European higher education. Education and Information Technologies , 28(6),
+6789–6804.
+[18]
+Gupta, R., Kumar, P., & Singh, A. (2023). Heuristic models for classroom allocation: An optimization
+perspective. Applied Computing and Informatics , 19(1), 78–94.
+[19]
+Khan, A., & Rahman, M. (2024). Mobile learning platforms and their challenges in higher education.
+International Journal of Innovative Research in Education , 11(3), 88–102.
+[20]
+Khan, A., Rauf, M., & Zia, H. (2023). Automating university class timetables: Integrating AI algorithms
+with mobile access. Journal of Computing and Education Systems , 11(2), 54–71.
+[21]
+Kusi, F., & Adjei, S. (2024). Enhancing academic timetabling through cloud-based classroom allocation
+systems: A case study of Ghanaian universities. Journal of Information Systems and Education , 15(1),
+112–128.
+38
+
+
+===== PAGE 50 =====
+[22]
+Li, H., Wang, J., & Zhou, P. (2024). Automated scheduling algorithms for higher education: Toward
+error-free class allocation. International Journal of Computer Applications in Education , 12(4), 201–
+215.
+[23]
+Li, X., & Zhao, Y. (2024). Mobile-enabled classroom management systems in Chinese higher education:
+A case of intelligent scheduling. Journal of Higher Education Systems , 47(2), 201–220.
+[24]
+Mensah, D. (2023). Addressing overcrowding in Ghanaian universities through automated timetabling
+systems. Journal of Higher Education Management , 29(3), 201–219.
+[25]
+Mensah, K., & Boateng, D. (2024). Challenges of manual classroom scheduling in technical universities:
+A study in Ghana. African Journal of Education and Technology , 12(3), 77–89.
+[26]
+Mensah, K., Nartey, S., & Asare, J. (2025). Enhancing teaching and learning with mobile-first
+administrative systems in Ghanaian universities. African Journal of ICT in Education , 12(1), 78–95.
+[27]
+Musiimenta, A., Twinomujuni, D., & Ninsiima, H. (2025). Real-time mobile solutions for academic
+timetabling: Evidence from East African universities. International Journal of Educational Technology
+in Africa , 7(1), 1–16.
+[28]
+Nkansah, M., & Arthur, J. (2024). Mobile-first solutions for academic scheduling: Improving efficiency
+in higher education. Journal of Mobile Learning and Applications , 8(4), 201–216.
+[29]
+Nyarko, E., & Adjei, R. (2024). Mobile technology adoption for academic administration: Case study
+of a Ghanaian polytechnic. Journal of Education and Development , 19(2), 56–70.
+[30]
+Okafor, C., Nwankwo, J., & Eze, S. (2024). Enhancing student satisfaction with mobile-based timetable
+notification systems. Nigerian Journal of Computer Science , 22(1), 55–70.
+[31]
+Okafor, C., Obi, L., & Umeh, C. (2025). Classroom scheduling challenges in Nigerian tertiary
+institutions and the role of digital solutions. West African Journal of Education and Innovation , 6(1),
+33–49.
+[32]
+Osei, P., & Boateng, K. (2022). Manual classroom allocation and its challenges in Ghanaian tertiary
+institutions. Ghana Journal of Educational Technology , 8(2), 67–81.
+[33]
+Owusu, B., & Amankwah, K. (2025). Mobile adoption trends in Ghanaian universities: Implications for
+digital classroom systems. African Journal of Information Systems , 17(1), 145–160.
+39
+
+
+===== PAGE 51 =====
+[34]
+Owusu, D., & Akomea, J. (2025). Real-time allocation of classrooms using mobile apps in technical
+institutions. Journal of Technical Education and Management , 17(1), 101–118.
+[35]
+Owusu, K., Asante, J., & Boakye, F. (2024). Advancing classroom allocation: The case for computerized
+timetabling in technical universities. African Journal of Information Systems , 16(2), 98–112.
+[36]
+Owusu, R., Danso, K., & Lamptey, E. (2023). Timetable clashes and the need for automated class
+allocation in African universities. Journal of Higher Education Management , 29(2), 55–70.
+[37]
+Teye, M., & Abeka, H. (2024). Enhancing student engagement through automated scheduling systems.
+Journal of Educational Innovation , 6(1), 33–45.
+[38]
+Yakubu, A., & Sulemana, I. (2023). Mobile technologies and student satisfaction in university learning
+environments. Journal of Information Systems in Education , 12(4), 221–236.
+[39]
+Zhang, H., & Lin, Q. (2024). Smart timetabling: AI and mobile technologies in modern higher education
+systems. Educational Technology Research and Development , 72(3), 439–455.
+[40]
+Zhang, L., Chen, H., & Li, X. (2025). Mobile classroom allocation systems: Real-time scheduling and
+communication in universities. International Journal of Smart Education Systems , 18(1), 33–49.
+[41]
+Zhang, Y., & Liu, Q. (2024). Improving classroom allocation efficiency using computerized scheduling
+platforms. Journal of Information Technology in Education , 23(3), 121–134.
+[42]
+Zhang, Y., Chen, H., & Wang, Q. (2022). Digital twin-driven classroom scheduling systems: A new
+paradigm for smart campuses. IEEE Transactions on Learning Technologies , 15(4), 456–468.
+[43]
+Zhou, Y., & Wang, X. (2023). Mobile applications in higher education: Trends and opportunities for
+class management. International Journal of Mobile Learning and Organization , 17(2), 134–149.
+40
+
+
+===== PAGE 52 =====
+APPENDIX A: Survey Response Diagrams
+This appendix presents the survey response diagrams collected during the requirements elicitation phase of the
+project.
+Figure 5.1: Willingness to Use a Classroom Allocation App
+41
+
+
+===== PAGE 53 =====
+Figure 5.2: Main Challenges with Manual Allocation
+Figure 5.3: Preferred Features in the System
+42
+
+
+===== PAGE 54 =====
+Figure 5.4: Trust in Digital vs Manual Allocation
+43

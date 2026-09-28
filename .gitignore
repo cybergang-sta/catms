@@ -1,0 +1,53 @@
+# ─── Secrets ────────────────────────────────────────────────────────────────
+# Never commit. In staging and production these are injected by the
+# orchestrator, so the image is identical across every environment.
+.env
+.env.*
+!.env.example
+
+# ─── Dependencies ───────────────────────────────────────────────────────────
+/vendor/
+/node_modules/
+
+# ─── Runtime-writable state ─────────────────────────────────────────────────
+# Logs, cache, and the maintenance flag. The directory structure is tracked via
+# .gitkeep files so a fresh clone can write to it immediately.
+/storage/logs/*
+/storage/cache/*
+!/storage/logs/.gitkeep
+!/storage/cache/.gitkeep
+/storage/maintenance.flag
+/storage/*.flag
+
+# ─── Test and analysis artefacts ─────────────────────────────────────────────
+/.phpunit.cache/
+/.phpunit.result.cache
+/coverage/
+/build/
+/.php-cs-fixer.cache
+/.phpstan.cache/
+/phpstan.neon.dist
+/phpcs.xml.dist
+
+# ─── Golden baseline ────────────────────────────────────────────────────────
+# The baseline itself IS committed — it is the record of what the engine
+# produced for the reference dataset, and a diff against it is the signal that
+# an engine change altered behaviour. This ignores only the scratch copy the
+# regeneration script writes while comparing.
+!/tests/Unit/Allocation/_golden/*.json
+
+# ─── Local and editor noise ─────────────────────────────────────────────────
+*.log
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.sublime-*
+
+# ─── Exported reports and uploads ────────────────────────────────────────────
+# Generated on demand and served as a download; keeping them out of the
+# repository stops a large CSV from dominating clone time.
+/storage/exports/

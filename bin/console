@@ -1,0 +1,41 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * The console. Every command, every option: `php bin/console list`.
+ *
+ * This is the only `bin/` script that takes a command name on the command line.
+ * The others are one-per-command wrappers for runbooks and cron, and they all
+ * funnel through here (see `App\Console\Launcher`).
+ *
+ * Usage:
+ *   php bin/console list
+ *   php bin/console migrate --status
+ *   php bin/console generate --semester=CSC-2026-1 --department=Computer Science
+ *   php bin/console <command> --help
+ *
+ * No database and no .env are needed for `list`, `routes` or `smoke --group=config`.
+ */
+
+declare(strict_types=1);
+
+namespace App\Bin;
+
+use App\Console\Launcher;
+
+if (\PHP_SAPI !== 'cli') {
+    http_response_code(403);
+    echo "This script must be run from the command line.\n";
+    exit(1);
+}
+
+$root = \dirname(__DIR__);
+
+if (! is_file($root . '/vendor/autoload.php')) {
+    fwrite(STDERR, "Dependencies are not installed. Run: composer install\n");
+    exit(1);
+}
+
+require $root . '/vendor/autoload.php';
+
+exit(Launcher::main($argv));

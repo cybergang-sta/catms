@@ -1,0 +1,141 @@
+# CATMS — local development stack.
+#
+#   cp .env.example .env
+#   docker compose up -d --build
+#   docker compose exec app php bin/migrate.php
+#   docker compose exec app php bin/seed.php
+#
+# The tightest edit/run loop for the allocation engine needs none of this:
+# `composer install && composer test:unit` runs against pure PHP with no
+# database (docs/DEPLOYMENT.md §5).
+
+name: catms
+
+services:
+  # ── Database ───────────────────────────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      # The schema uses generated columns and CHECK constraints, both of which
+      # MySQL parses and then ignores below 8.0.16. Failing loudly at startup is
+      # better than discovering it when a migration silently does nothing.
+      - --mysql-native-password=ON
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_dev_only}
+      MYSQL_DATABASE: ${DB_DATABASE:-utas_catms}
+      MYSQL_USER: ${DB_USERNAME:-catms_app}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-catms_app}
+    ports:
+      # Published so a GUI client can attach. Deliberately 3307 on the host: the
+      # usual 3306 is frequently already taken by a local MySQL install, and
+      # silently talking to the wrong database is a bad afternoon.
+      - "3307:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+      # Loaded once, on first initialisation of an empty data volume.
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-p${DB_ROOT_PASSWORD:-root_dev_only}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  # ── Web tier ───────────────────────────────────────────────────────────────
+  # nginx and PHP-FPM from the one image. FPM's socket is not published, so the
+  # only way in is nginx on port 80.
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_KEY: ${APP_KEY:-}
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      API_PREFIX: ${API_PREFIX:-/api/v1}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-utas_catms}
+      DB_USERNAME: ${DB_USERNAME:-catms_app}
+      DB_PASSWORD: ${DB_PASSWORD:-catms_app}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      PASSWORD_BCRYPT_COST: ${PASSWORD_BCRYPT_COST:-12}
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+    ports:
+      - "8080:80"
+    volumes:
+      - app-storage:/var/www/html/storage
+    # php-fpm in the foreground, nginx in the foreground as PID 1. Signal
+    # handling is not ideal for either, which is why this arrangement is for
+    # local development only: docs/DEPLOYMENT.md §2.1 uses separate
+    # orchestrated services in staging and production.
+    command: >
+      sh -c "php-fpm -F &
+             exec nginx -g 'daemon off;'"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Outbox worker ──────────────────────────────────────────────────────────
+  # Same image, different command. This is the point of the single artefact: the
+  # worker cannot drift from the web tier's code.
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    command: ["php", "bin/worker.php", "start"]
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_KEY: ${APP_KEY:-}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Africa/Accra}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-utas_catms}
+      DB_USERNAME: ${DB_USERNAME:-catms_app}
+      DB_PASSWORD: ${DB_PASSWORD:-catms_app}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      PASSWORD_BCRYPT_COST: ${PASSWORD_BCRYPT_COST:-12}
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-smtp}
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM_ADDRESS: ${MAIL_FROM_ADDRESS:-timetables@utas.edu.gh}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-UTAS Timetable}
+      OUTBOX_BATCH_SIZE: ${OUTBOX_BATCH_SIZE:-200}
+      OUTBOX_MAX_ATTEMPTS: ${OUTBOX_MAX_ATTEMPTS:-5}
+    volumes:
+      - app-storage:/var/www/html/storage
+
+  # ── Mail catcher ───────────────────────────────────────────────────────────
+  # Catches every message so a notification change can be seen end to end
+  # without sending real e-mail to real students. Web UI on :8025.
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    environment:
+      MP_MAX_MESSAGES: 500
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+
+volumes:
+  db-data:
+  app-storage:

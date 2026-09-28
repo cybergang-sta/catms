@@ -1,0 +1,58 @@
+# Keep the build context small and the image free of local state.
+#
+# Anything listed here is invisible to `docker build`. That matters for
+# correctness, not just speed: without these lines a developer's `.env` and
+# their local logs would be baked into an image that is then deployed.
+
+# Secrets — injected at run time, never baked in.
+.env
+.env.*
+!.env.example
+
+# Dependencies — rebuilt inside the image by `composer install`.
+/vendor/
+/node_modules/
+
+# Runtime state — a volume mount owns this at run time.
+storage/logs/*
+storage/cache/*
+storage/maintenance.flag
+/storage/exports/
+
+# Version control and CI
+.git/
+.gitignore
+.github/
+.gitattributes
+
+# Tests, analysis config and fixtures are not in the runtime image. `composer
+# install --no-dev` means PHPUnit is absent anyway; excluding the suite keeps a
+# test-only change from invalidating the image layer cache.
+tests/
+phpunit.xml
+phpcs.xml
+phpstan.neon
+.php-cs-fixer.php
+.php-cs-fixer.cache
+.phpunit.cache/
+coverage/
+
+# Documentation is not needed at run time. Excluded last so the rules above win
+# on any overlap.
+docs/
+*.md
+!README.md
+
+# Editor and OS noise
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Docker's own files, to avoid a confusing recursive context.
+Dockerfile
+docker-compose.yml
+docker-compose.*.yml
+.dockerignore

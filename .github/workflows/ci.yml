@@ -1,0 +1,206 @@
+name: CI
+
+# The gate is deliberately the same command a developer runs locally:
+#
+#     composer check      # lint -> analyse -> test:unit
+#
+# A pipeline that runs a different sequence from the local one tests a system
+# nobody develops against. See docs/TESTING.md §9 and docs/DEPLOYMENT.md §7.1.
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+  workflow_dispatch:
+
+# A new push to a branch cancels the previous run: nobody wants to wait for a
+# stale build of a commit that no longer exists.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Fast feedback: style and static analysis, no database ─────────────────
+  lint-and-analyse:
+    name: Lint and analyse
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, json, openssl, intl
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate composer.json and composer.lock agree
+        run: composer validate --strict
+
+      - name: Cache Composer packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.composer/cache
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      # --report=summary keeps the run log readable; the full report is written
+      # to a file and attached as an artifact so a failure can be inspected in
+      # detail without re-running the build.
+      - name: Code style (phpcs, PSR-12 + project rules)
+        run: |
+          set +e
+          vendor/bin/phpcs --report=full --report-summary=./phpcs-summary.txt
+          status=$?
+          cat ./phpcs-summary.txt
+          exit $status
+
+      - name: Static analysis (PHPStan level 6)
+        run: vendor/bin/phpstan analyse --memory-limit=1G --no-progress
+
+      - name: Upload phpcs summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpcs-summary
+          path: phpcs-summary.txt
+          if-no-files-found: ignore
+
+  # ── The allocation engine suite: pure PHP, no database ───────────────────
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, json, openssl, intl
+          # No database and no coverage driver: the engine suite is pure PHP and
+          # must stay that way (docs/ARCHITECTURE.md ADR-001).
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Run the engine suite
+        run: vendor/bin/phpunit --testsuite=unit --colors=never
+
+      # The golden baseline is the record of what the engine produced for the
+      # reference dataset. A silent regeneration would make the test unable to
+      # fail, so the working tree is checked for modifications afterwards.
+      - name: Verify the golden baseline is current
+        run: |
+          if [ -n "$(git status --porcelain tests/)" ]; then
+            echo "::error::The golden baseline is out of date. Run 'composer golden',"
+            echo "::error::review the diff, and commit the result in the same change"
+            echo "::error::as the engine edit that caused it."
+            git --no-pager diff -- tests/
+            exit 1
+          fi
+
+  # ── Repository and service suite: needs a real MySQL ─────────────────────
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Runs when a repository/service test changes, or on demand. Not on every
+    # push, because the MySQL service container dominates the wall clock of an
+    # otherwise 30-second build.
+    if: |
+      always()
+      && (github.event_name == 'workflow_dispatch'
+          || contains(github.event.pull_request.labels.*.name, 'integration')
+          || contains(github.event.head_commit.message, '[integration]'))
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_test_only
+          MYSQL_DATABASE: utas_catms_test
+          MYSQL_USER: catms_test
+          MYSQL_PASSWORD: catms_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot_test_only"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      APP_ENV: testing
+      APP_DEBUG: 'true'
+      APP_KEY: ci-only-not-a-secret-0000000000000000000000000000
+      API_PREFIX: /api/v1
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_DATABASE: utas_catms_test
+      DB_USERNAME: catms_test
+      DB_PASSWORD: catms_test
+      LOG_LEVEL: error
+      PASSWORD_BCRYPT_COST: '4'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_mysql, mbstring, json, openssl, intl
+          # A real driver: the integration suite asserts on MySQL behaviour
+          # (generated columns, the unique index backstop, conditional UPDATE).
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      # Loaded through the client rather than a volume mount, so the schema is
+      # read from the same bytes that are committed.
+      - name: Load the schema
+        run: mysql -h 127.0.0.1 -u catms_test -pcatms_test utas_catms_test < db/schema.sql
+
+      - name: Run the integration suite
+        run: vendor/bin/phpunit --testsuite=integration --colors=never
+
+  # ── Nothing may merge with a secret in it ────────────────────────────────
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      # `.env` is gitignored, so the file that must not exist is checked
+      # directly rather than trusted to the ignore rules.
+      - name: No environment file is committed
+        run: |
+          if [ -f .env ]; then
+            echo "::error::.env is committed. Remove it and rotate any value it contains."
+            exit 1
+          fi
+
+      - name: Scan for committed credentials
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload the scan report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+          if-no-files-found: ignore

@@ -1,0 +1,219 @@
+<?xml version="1.0"?>
+<ruleset name="CATMS">
+    <description>
+        Coding standard for the Classroom Allocation &amp; Timetable Management System.
+
+        PSR-12 is the floor, not the target. The additional rules exist because
+        this codebase has specific failure modes a generic standard will not catch:
+
+          * Global functions are forbidden inside src/Domain (see ForbiddenFunctions).
+            DeterminismTest asserts the engine is independent of PHP's global PRNG;
+            the linter is what stops a well-meaning contributor reintroducing it.
+          * declare(strict_types=1) is mandatory. It is what turns an integer
+            overflow into a fatal TypeError instead of a silently wrong answer —
+            the exact failure that shipped in the first draft of Rng.php.
+          * Slevomat's useless-code rules are on because dead code in a cost
+            function is not dead, it is a term silently contributing zero.
+
+        Run: composer lint      Auto-fix: composer fix
+    </description>
+
+    <file>src</file>
+    <file>tests</file>
+    <file>bin</file>
+    <file>config</file>
+    <file>public</file>
+
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/storage/*</exclude-pattern>
+    <exclude-pattern>*/db/*</exclude-pattern>
+    <exclude-pattern>*/docs/*</exclude-pattern>
+
+    <arg name="colors"/>
+    <!-- `console` is the extension-less entry point. It is a PHP file like any
+         other and gets the same treatment; without this it would be the one
+         script in the repository that no tool ever reads. -->
+    <arg name="extensions" value="php,console"/>
+    <arg name="basepath" value="."/>
+    <arg value="sp"/>
+
+    <!-- PSR-12, with this project's line length. -->
+    <rule ref="PSR12">
+        <exclude name="Generic.Files.LineLength"/>
+    </rule>
+    <rule ref="Generic.Files.LineLength">
+        <properties>
+            <property name="lineLimit" value="120"/>
+            <property name="absoluteLineLimit" value="0"/>
+            <!-- Comments are exempt; code is not. This codebase explains itself in
+                 long-form doc comments on purpose, and a 120-column gate on prose
+                 produces one of two bad outcomes: either the reasoning gets
+                 truncated to satisfy a column count, or the author stops writing
+                 it. Neither is what the column limit is for. It still binds on
+                 every line of actual code, which is the thing a reader has to
+                 scan quickly.
+
+                 It also exempts PHPStan array shapes, which cannot be wrapped
+                 without becoming less readable than the thing they describe:
+
+                     @return array{id: string, group: string, passed: bool, ...} -->
+            <property name="ignoreComments" value="true"/>
+        </properties>
+    </rule>
+    <rule ref="Generic.PHP.RequireStrictTypes"/>
+    <rule ref="Generic.PHP.DisallowShortOpenTag"/>
+
+    <!-- Type safety. -->
+    <rule ref="SlevomatCodingStandard.TypeHints.DeclareStrictTypes">
+        <properties>
+            <!-- The blank-line form, not <?php declare(...); on one line.
+                 Every file in this repository uses
+
+                     <?php
+
+                     declare(strict_types=1);
+
+                 which is what PSR-12 asks for and what an editor's "insert
+                 strict types" action produces. `declareOnFirstLine=true` would
+                 have demanded the single-line form and failed on all 109
+                 correct files; `linesCountBeforeDeclare=1` states the actual
+                 convention, so a contributor who omits the blank line is told
+                 so rather than being told the whole codebase is wrong. -->
+            <property name="declareOnFirstLine" value="false"/>
+            <property name="linesCountBeforeDeclare" value="1"/>
+            <property name="spacesCountAroundEqualsSign" value="0"/>
+        </properties>
+    </rule>
+    <rule ref="SlevomatCodingStandard.TypeHints.ParameterTypeHint"/>
+    <rule ref="SlevomatCodingStandard.TypeHints.ReturnTypeHint"/>
+    <rule ref="SlevomatCodingStandard.TypeHints.PropertyTypeHint">
+        <properties>
+            <property name="enableNativeTypeHint" value="true"/>
+        </properties>
+    </rule>
+    <rule ref="SlevomatCodingStandard.TypeHints.ClassMemberTypeHint"/>
+    <rule ref="SlevomatCodingStandard.TypeHints.DisallowMixedTypeHint"/>
+    <rule ref="SlevomatCodingStandard.TypeHints.DNFTypeHintFormat"/>
+
+    <!-- Dead and duplicated code. -->
+    <rule ref="SlevomatCodingStandard.PHP.DisallowDirectMagicInvokeCall"/>
+    <rule ref="SlevomatCodingStandard.PHP.UselessElse"/>
+    <rule ref="SlevomatCodingStandard.PHP.UselessReturn"/>
+    <rule ref="SlevomatCodingStandard.PHP.UselessParentCall"/>
+    <rule ref="SlevomatCodingStandard.PHP.DisallowShortTernary"/>
+    <rule ref="SlevomatCodingStandard.PHP.RequireExplicitAssertion"/>
+    <!-- ignoreConstructors: this codebase uses constructor property promotion
+         (Command, Controller, MysqlUserRepository and four others), and a
+         promoted-property constructor has nothing to put in its body. Reporting
+         eight correct constructors would train people to ignore the sniff. -->
+    <rule ref="SlevomatCodingStandard.Functions.DisallowEmptyFunction">
+        <properties>
+            <property name="ignoreConstructors" value="true"/>
+        </properties>
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+    <rule ref="SlevomatCodingStandard.Functions.UnusedParameter"/>
+
+    <!-- No hidden global state. The two rules below are the same idea at two
+         different scopes, because "deterministic" and "reads the wall clock"
+         are not the same requirement:
+
+           1. The global PRNG is forbidden everywhere in the application. A
+              random number that did not come from App\Domain\Allocation\Rng
+              makes the engine irreproducible, and a random number in a request
+              path makes a bug uninvestigable.
+           2. Wall-clock reads are forbidden in the *engine* only. Outside
+              src/Domain/Allocation the clock is not a correctness hazard but a
+              fact — a log line needs a timestamp and a JWT needs `iat` — so
+              forbidding time() repo-wide would only teach people to reach for
+              the forbidden name in a disguise. Inside the engine it is a
+              determinism bug waiting to happen: SystemClock and the injected
+              Clock port are the only legitimate readers. -->
+    <rule ref="SlevomatCodingStandard.PHP.ForbiddenFunctions">
+        <properties>
+            <property name="forbiddenFunctions" type="array">
+                <element key="rand" value="null"/>
+                <element key="mt_rand" value="null"/>
+                <element key="srand" value="null"/>
+                <element key="mt_srand" value="null"/>
+                <element key="shuffle" value="null"/>
+                <element key="array_rand" value="null"/>
+                <element key="uniqid" value="null"/>
+            </property>
+        </properties>
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+
+    <rule ref="SlevomatCodingStandard.PHP.ForbiddenFunctions">
+        <properties>
+            <property name="forbiddenFunctions" type="array">
+                <element key="time" value="null"/>
+                <element key="date" value="null"/>
+                <element key="gmdate" value="null"/>
+                <element key="microtime" value="null"/>
+                <element key="hrtime" value="null"/>
+            </property>
+        </properties>
+        <include-pattern>src/Domain/Allocation/*</include-pattern>
+        <exclude-pattern>src/Domain/Allocation/SystemClock.php</exclude-pattern>
+    </rule>
+
+    <!-- Imports and namespaces. UnusedUses and FullyQualifiedGlobalClasses
+         together catch a stale import and an undeclared property reference. -->
+    <rule ref="SlevomatCodingStandard.Namespaces.AlphabeticallySortedUses"/>
+    <rule ref="SlevomatCodingStandard.Namespaces.UnusedUses"/>
+    <rule ref="SlevomatCodingStandard.Namespaces.UseSpacing"/>
+    <rule ref="SlevomatCodingStandard.Namespaces.UseClassKeyword"/>
+    <rule ref="SlevomatCodingStandard.Namespaces.FullyQualifiedGlobalClasses"/>
+    <rule ref="SlevomatCodingStandard.Namespaces.FullyQualifiedExceptionClasses"/>
+    <rule ref="SlevomatCodingStandard.Namespaces.UsedAttributesOnlyInAttributes"/>
+    <rule ref="SlevomatCodingStandard.Namespaces.ClassStructure"/>
+
+    <!-- Control structures. EarlyExit keeps the cost function readable: the
+         early-return shape is what keeps a 7-term expression legible. -->
+    <rule ref="SlevomatCodingStandard.ControlStructures.RequireSingleLineCondition"/>
+    <rule ref="SlevomatCodingStandard.ControlStructures.RequireMultiLineCondition"/>
+    <rule ref="SlevomatCodingStandard.ControlStructures.EarlyExit"/>
+    <rule ref="SlevomatCodingStandard.ControlStructures.RequireMultiLineTernaryOperator"/>
+    <rule ref="SlevomatCodingStandard.ControlStructures.DisallowYodaConditions"/>
+    <rule ref="SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator"/>
+    <rule ref="SlevomatCodingStandard.ControlStructures.RequireExplicitBooleanOperatorPrecedence"/>
+    <rule ref="SlevomatCodingStandard.ControlStructures.ForbiddenSwitchDefault"/>
+    <rule ref="SlevomatCodingStandard.ControlStructures.DisallowEmptyLoop"/>
+    <rule ref="SlevomatCodingStandard.ControlStructures.RequireExitExpression"/>
+
+    <!-- Arrays and functions. -->
+    <rule ref="SlevomatCodingStandard.Arrays.TrailingArrayComma"/>
+    <rule ref="SlevomatCodingStandard.Arrays.MultiLineArrayEndingBracketPlacement"/>
+    <rule ref="SlevomatCodingStandard.Arrays.SingleLineArrayWhitespaceBeforeClosingBrace"/>
+    <rule ref="SlevomatCodingStandard.Arrays.SingleLineArrayIndentation"/>
+    <rule ref="SlevomatCodingStandard.Arrays.RequireSingleLineArrayFormatting"/>
+    <rule ref="SlevomatCodingStandard.Functions.DisallowTrailingCommaInDeclaration"/>
+    <rule ref="SlevomatCodingStandard.Functions.NullableTypeDeclaration"/>
+    <rule ref="SlevomatCodingStandard.Functions.ReturnTypeHintSpacing"/>
+    <rule ref="SlevomatCodingStandard.Functions.StaticClosure"/>
+
+    <!-- Operators, casts, whitespace. -->
+    <rule ref="SlevomatCodingStandard.Operators.DisallowEqualOperators"/>
+    <rule ref="SlevomatCodingStandard.Operators.RequireCombinedAssignmentOperator"/>
+    <rule ref="SlevomatCodingStandard.Operators.DisallowMultipleAssignments"/>
+    <rule ref="SlevomatCodingStandard.Operators.RequireShortFormIncrementDecrementOperators"/>
+    <rule ref="SlevomatCodingStandard.Operators.SpreadOperatorSpacing"/>
+    <rule ref="SlevomatCodingStandard.Operators.RequireNullSafeOperator"/>
+    <rule ref="SlevomatCodingStandard.CastLengthCastSniff"/>
+    <rule ref="SlevomatCodingStandard.CastSpacing"/>
+    <rule ref="SlevomatCodingStandard.Whitespace.LanguageConstructSpacing"/>
+    <rule ref="SlevomatCodingStandard.Whitespace.ParenthesesSpacing"/>
+
+    <!-- Documentation. docs/ALLOCATION_ENGINE.md is only trustworthy if the code
+         that implements it is documented where the constraint is enforced. -->
+    <rule ref="SlevomatCodingStandard.Commenting.DocCommentSpacing"/>
+    <rule ref="SlevomatCodingStandard.Commenting.EmptyComment"/>
+    <rule ref="SlevomatCodingStandard.Commenting.UselessFunctionDocComment"/>
+    <rule ref="SlevomatCodingStandard.Commenting.UselessInheritDocComment"/>
+    <rule ref="SlevomatCodingStandard.Commenting.DocCommentAlignment"/>
+    <rule ref="SlevomatCodingStandard.Commenting.AnnotationName"/>
+    <rule ref="SlevomatCodingStandard.Commenting.RequireOneLinePropertyDocComment"/>
+    <rule ref="SlevomatCodingStandard.Commenting.DocCommentIndentation"/>
+</ruleset>

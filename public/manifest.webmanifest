@@ -1,0 +1,18 @@
+{
+  "name": "CATMS — Classroom Allocation & Timetable",
+  "short_name": "CATMS",
+  "description": "Classroom allocation and timetable for UTAS.",
+  "start_url": "/today",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3efe7",
+  "theme_color": "#142028",
+  "icons": [
+    {
+      "src": "/assets/img/mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

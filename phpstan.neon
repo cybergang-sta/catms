@@ -1,0 +1,71 @@
+# PHPStan configuration — CATMS
+#
+# Level 6 is the target: the highest level that can be enforced without generics
+# everywhere in a codebase made mostly of small immutable value objects and one
+# large algorithm. Level 7/8/9 would mean annotating every array shape inside the
+# cost function, which adds noise without adding a defect class the tests in
+# tests/Unit/Allocation do not already cover.
+#
+# Run: composer analyse
+
+includes:
+    - vendor/phpstan/phpstan-deprecation-rules/rules.neon
+
+parameters:
+    level: 6
+
+    paths:
+        - src
+        - tests
+        - bin
+        - config
+        - public
+
+    # `console` is the extension-less bin/console entry point. Listed explicitly
+    # so the one script every operator types is analysed like every other.
+    fileExtensions:
+        - php
+        - console
+
+    excludePaths:
+        analyseAndScan:
+            - vendor
+            - storage
+            - db
+            - docs
+
+    # `mixed` is genuinely necessary in a small number of places: the cost
+    # function's dynamic per-term breakdown map, the decoded JSON payload of an
+    # outbox row, and raw toArray() output. Those are the boundaries of the typed
+    # world; everything inside them is checked.
+    ignoreErrors:
+        -
+            message: '#expects (array|iterable|list)[^,]*mixed given#'
+            path: src/Domain/Allocation/CostFunction.php
+        -
+            message: '#expects (array|iterable|list)[^,]*mixed given#'
+            path: src/Domain/Allocation/CostBreakdown.php
+        -
+            message: '#expects (array|iterable|list)[^,]*mixed given#'
+            path: src/Domain/Allocation/AllocationEngine.php
+        -
+            message: '#^Return type .* of method .* should be .+ but returns array\.<int, mixed>\.$#'
+            path: src/Domain/Allocation/CostBreakdown.php
+
+    treatPhpDocTypesAsCertain: false
+
+    checkMissingIterableValueType: true
+    checkGenericClassInNonGenericObjectType: true
+    checkMissingCallableSignature: true
+
+    # A removed or renamed class must break the build loudly rather than
+    # surfacing as a runtime fatal in a deployment. reportUnmatchedIgnoredErrors
+    # is the mirror image: an ignore pattern that no longer matches anything is
+    # itself a defect, because it means the problem it silenced is unfixed.
+    reportUnmatchedIgnoredErrors: true
+
+    # Universal object crates: PHPStan otherwise reports every method on these
+    # as possibly-missing, which buries the real findings.
+    universalObjectCrateClasses:
+        - PDO
+        - DateTimeImmutable

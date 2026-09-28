@@ -1,0 +1,108 @@
+# CATMS — Apache configuration for the public/ document root.
+#
+# Used when the deployment target is Apache rather than nginx. The rules mirror
+# docker/nginx.conf; if you change one, change the other.
+#
+# The security posture is the same in both: the document root is public/, only
+# public/index.php is executed, and .htaccess is not allowed to be overridden
+# (AllowOverride None in the vhost, which is the default in the packaged config).
+
+# ── Never serve dotfiles ─────────────────────────────────────────────────────
+# `.env` is the one that matters. This also covers `.htaccess` itself and any
+# editor swap file that ends up in the tree.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# ── Only the front controller may be executed ───────────────────────────────
+# Everything above public/ is outside the document root and so is already
+# unreachable. This is the belt to that pair of braces: a .php file that somehow
+# lands in public/ is refused rather than run.
+#
+# The two sections are merged by filename and the later one wins, so the net
+# effect is "deny every .php, then re-grant the two entry points". This is done
+# with plain <Files>/<FilesMatch> rather than with mod_rewrite, because
+# mod_rewrite may be unavailable on a shared host and the guard must still hold.
+<FilesMatch "\.php$">
+    Require all denied
+</FilesMatch>
+
+<Files "index.php">
+    Require all granted
+</Files>
+
+<Files "router.php">
+    Require all granted
+</Files>
+
+# ── Front controller routing ────────────────────────────────────────────────
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # If the requested path maps to a real file or directory, serve it. This is
+    # what lets the service worker, the manifest and the built assets through.
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Everything else is an application route.
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Without mod_rewrite the API cannot work at all, so say so plainly rather than
+# serving 404s that look like an application bug.
+<IfModule !mod_rewrite.c>
+    <If "%{REQUEST_URI} =~ m#^/api/#">
+        Require all denied
+    </If>
+</IfModule>
+
+# ── Security headers ────────────────────────────────────────────────────────
+# Repeated here rather than left to PHP alone, so a static asset response and a
+# request rejected by Apache both carry them.
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "no-referrer"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header always set Permissions-Policy "camera=(self), geolocation=()"
+
+    # The service worker controls the whole origin, so it must never be cached
+    # or a deploy would not reach installed clients.
+    <FilesMatch "service-worker\.js$">
+        Header always set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
+</IfModule>
+
+# ── Hardening ───────────────────────────────────────────────────────────────
+Options -Indexes -ExecCGI -MultiViews
+AddDefaultCharset UTF-8
+
+# Do not advertise the PHP version.
+<IfModule mod_php.c>
+    php_flag expose_php off
+    php_flag display_errors off
+    php_flag log_errors on
+</IfModule>
+
+# ── Static assets ───────────────────────────────────────────────────────────
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css                "access plus 7 days"
+    ExpiresByType application/javascript  "access plus 7 days"
+    ExpiresByType image/png               "access plus 7 days"
+    ExpiresByType image/jpeg              "access plus 7 days"
+    ExpiresByType image/svg+xml           "access plus 7 days"
+    ExpiresByType font/woff2              "access plus 30 days"
+    # Deliberately not cached: the service worker and the manifest.
+    ExpiresByType application/manifest+json "access plus 0 seconds"
+</IfModule>
+
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css application/json
+    AddOutputFilterByType DEFLATE application/javascript image/svg+xml
+</IfModule>
+
+# ── Front controller ────────────────────────────────────────────────────────
+DirectoryIndex index.php
