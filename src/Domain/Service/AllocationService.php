@@ -110,7 +110,10 @@ final class AllocationService
             throw ValidationException::field('max_iterations', 'Iterations cannot be negative.');
         }
         if ($budget <= 0 || $budget > 30) {
-            throw ValidationException::field('time_budget_seconds', 'The time budget must be between 0 and 30 seconds.');
+            throw ValidationException::field(
+                'time_budget_seconds',
+                'The time budget must be between 0 and 30 seconds.',
+            );
         }
 
         $profileName = (string) ($input['weight_profile'] ?? 'balanced');
@@ -182,20 +185,36 @@ final class AllocationService
                 ]);
             }
 
-            $this->audit->record($actor, $willApply ? 'allocation.generated' : 'allocation.advisory', 'allocation_run', null, null, [
-                'run_id'  => $write->runId,
-                'applied' => $write->applied,
-                'accuracy' => $write->accuracy,
-            ]);
+            $this->audit->record(
+                $actor,
+                $willApply ? 'allocation.generated' : 'allocation.advisory',
+                'allocation_run',
+                null,
+                null,
+                [
+                    'run_id'   => $write->runId,
+                    'applied'  => $write->applied,
+                    'accuracy' => $write->accuracy,
+                ],
+            );
             if ($write->applied) {
                 $this->notifyGenerated($loaded, $result);
             }
 
             return [
                 'run'          => $this->runRow($write->runId, $actor, 'department'),
-                'assignments'  => array_map(static fn ($assignment): array => $assignment->toArray(), $result->orderedAssignments()),
-                'unallocated'  => array_map(static fn ($entry): array => $entry->toArray(), $result->unallocated),
-                'violations'   => array_map(static fn ($violation): array => $violation->toArray(), $result->violations),
+                'assignments'  => array_map(
+                    static fn ($assignment): array => $assignment->toArray(),
+                    $result->orderedAssignments(),
+                ),
+                'unallocated'  => array_map(
+                    static fn ($entry): array => $entry->toArray(),
+                    $result->unallocated,
+                ),
+                'violations'   => array_map(
+                    static fn ($violation): array => $violation->toArray(),
+                    $result->violations,
+                ),
                 'applied'      => $write->applied,
                 'gate_blocked' => $applyRequested && $belowGate,
                 'day_limited'  => $dayLimited,
@@ -260,10 +279,15 @@ final class AllocationService
         }
 
         $this->database->execute(
-            'UPDATE `allocation_conflicts` SET `resolved_at` = UTC_TIMESTAMP(), `resolved_by` = :actor WHERE `id` = :id',
+            'UPDATE `allocation_conflicts`'
+            . ' SET `resolved_at` = UTC_TIMESTAMP(), `resolved_by` = :actor'
+            . ' WHERE `id` = :id',
             ['actor' => $actor->userId(), 'id' => $id],
         );
-        $after = $this->database->selectOne('SELECT * FROM `allocation_conflicts` WHERE `id` = :id', ['id' => $id]) ?? [];
+        $after = $this->database->selectOne(
+            'SELECT * FROM `allocation_conflicts` WHERE `id` = :id',
+            ['id' => $id],
+        ) ?? [];
         $this->audit->record($actor, 'conflict.resolved', 'allocation_conflict', $id, null, [
             'resolution' => $resolution,
             'resolved_at' => $after['resolved_at'] ?? null,
@@ -348,7 +372,8 @@ final class AllocationService
                 'course_id'       => (int) $before['course_id'],
                 'severity'        => 'warning',
                 'constraint_code' => 'OVERRIDE',
-                'message'         => 'An administrator forced this placement: ' . mb_substr(trim((string) $input['reason']), 0, 420),
+                'message'         => 'An administrator forced this placement: '
+                    . mb_substr(trim((string) $input['reason']), 0, 420),
             ]);
         }
 
@@ -384,7 +409,14 @@ final class AllocationService
 
         $this->database->update('allocations', ['status' => 'confirmed'], ['id' => $id]);
         $after = $this->present($this->row($actor, $scope, $id));
-        $this->audit->record($actor, 'allocation.confirmed', 'allocation', $id, ['status' => $before['status']], $after);
+        $this->audit->record(
+            $actor,
+            'allocation.confirmed',
+            'allocation',
+            $id,
+            ['status' => $before['status']],
+            $after,
+        );
         $this->notifications->fanOut(
             (int) $before['cohort_id'],
             'allocation.confirmed',
@@ -828,8 +860,12 @@ final class AllocationService
             ['id' => (int) $allocation['semester_id']],
         );
         $date = (string) ($allocation['effective_date'] ?? '');
-        if ($window !== null && $date !== '' && ($date < (string) $window['teaching_start'] || $date > (string) $window['teaching_end'])) {
-            $violations[] = ['code' => 'FR-CAL-04', 'message' => 'That date sits outside the teaching window.'];
+        if ($window !== null && $date !== '') {
+            $before = (string) $window['teaching_start'];
+            $end = (string) $window['teaching_end'];
+            if ($date < $before || $date > $end) {
+                $violations[] = ['code' => 'FR-CAL-04', 'message' => 'That date sits outside the teaching window.'];
+            }
         }
 
         $cohortClash = $this->database->scalar(

@@ -699,7 +699,16 @@ final class SmokeCommand extends Command
         // The documented error shape, on a path that needs no database. This is
         // the one most likely to regress quietly, because a 400 nobody looks at
         // is invisible until a client depends on the code.
-        $notFound = $app->handle(new Request('GET', $prefix . '/definitely-not-a-route', [], [], '', [], '127.0.0.1', 'catms-smoke'));
+        $notFound = $app->handle(new Request(
+            'GET',
+            $prefix . '/definitely-not-a-route',
+            [],
+            [],
+            '',
+            [],
+            '127.0.0.1',
+            'catms-smoke',
+        ));
         $notFoundBody = $notFound->decoded();
         $code = $notFoundBody['error']['code'] ?? null;
 

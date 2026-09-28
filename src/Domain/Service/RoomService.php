@@ -48,7 +48,10 @@ final class RoomService
      */
     public function create(Identity $actor, array $input, array $features): array
     {
-        $departmentId = $this->departmentForWrite($actor, isset($input['department_id']) ? (int) $input['department_id'] : null);
+        $departmentId = $this->departmentForWrite(
+            $actor,
+            isset($input['department_id']) ? (int) $input['department_id'] : null,
+        );
         try {
             $id = $this->database->transaction(function () use ($input, $departmentId, $features): int {
                 $id = $this->database->insert('rooms', [
@@ -134,7 +137,10 @@ final class RoomService
             ['id' => $id],
         );
         if ($used > 0) {
-            throw new ConflictException('This room is still referenced by the timetable, including cancelled sessions. Keep it, or mark it out of service.');
+            throw new ConflictException(
+                'This room is still referenced by the timetable, including cancelled sessions.'
+                . ' Keep it, or mark it out of service.',
+            );
         }
 
         $this->database->delete('rooms', ['id' => $id]);
@@ -233,7 +239,12 @@ final class RoomService
             $where .= ' AND (r.code LIKE :q OR r.name LIKE :q OR r.building LIKE :q)';
             $bindings['q'] = '%' . $q . '%';
         }
-        foreach (['building' => 'r.building', 'room_type' => 'r.room_type', 'status' => 'r.status'] as $key => $column) {
+        $filters = [
+            'building' => 'r.building',
+            'room_type' => 'r.room_type',
+            'status' => 'r.status',
+        ];
+        foreach ($filters as $key => $column) {
             if (isset($query[$key]) && is_string($query[$key]) && $query[$key] !== '') {
                 $where .= ' AND ' . $column . ' = :' . $key;
                 $bindings[$key] = $query[$key];
@@ -248,7 +259,8 @@ final class RoomService
             $bindings['max_capacity'] = (int) $query['max_capacity'];
         }
         if (isset($query['features']) && is_string($query['features']) && trim($query['features']) !== '') {
-            foreach (array_values(array_filter(array_map('trim', explode(',', $query['features'])))) as $index => $code) {
+            $codes = array_values(array_filter(array_map('trim', explode(',', $query['features']))));
+            foreach ($codes as $index => $code) {
                 $key = 'feat_' . $index;
                 $where .= ' AND EXISTS (
                     SELECT 1 FROM `room_feature_map` m

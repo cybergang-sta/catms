@@ -101,7 +101,11 @@ final class CourseService
     {
         $before = $this->presentCourse($this->courseRow($actor, $scope, $id));
         $changes = [];
-        foreach (['title', 'description', 'credit_hours', 'meetings_per_week', 'duration_minutes', 'level', 'preferred_building', 'default_lecturer_id', 'is_active', 'code'] as $field) {
+        $editable = [
+            'title', 'description', 'credit_hours', 'meetings_per_week', 'duration_minutes', 'level',
+            'preferred_building', 'default_lecturer_id', 'is_active', 'code',
+        ];
+        foreach ($editable as $field) {
             if (array_key_exists($field, $input)) {
                 $changes[$field] = $input[$field];
             }
@@ -127,7 +131,10 @@ final class CourseService
     public function delete(Identity $actor, string $scope, int $id): void
     {
         $this->courseRow($actor, $scope, $id);
-        $cohorts = (int) $this->database->scalar('SELECT COUNT(*) FROM `cohorts` WHERE `course_id` = :id', ['id' => $id]);
+        $cohorts = (int) $this->database->scalar(
+            'SELECT COUNT(*) FROM `cohorts` WHERE `course_id` = :id',
+            ['id' => $id],
+        );
         if ($cohorts > 0) {
             throw new ConflictException('This course still has cohorts. Remove those before deleting it.');
         }
@@ -256,7 +263,8 @@ final class CourseService
         $this->cohortRow($actor, $scope, $cohortId);
         $this->database->transaction(function () use ($cohortId, $userId): void {
             $this->database->execute(
-                'UPDATE `enrollments` SET `status` = \'dropped\' WHERE `cohort_id` = :cohort AND `student_id` = :student',
+                'UPDATE `enrollments` SET `status` = \'dropped\''
+                . ' WHERE `cohort_id` = :cohort AND `student_id` = :student',
                 ['cohort' => $cohortId, 'student' => $userId],
             );
             $this->recount($cohortId);
@@ -350,7 +358,10 @@ final class CourseService
      */
     private function syncFeatures(int $courseId, array $codes): void
     {
-        $this->database->execute('DELETE FROM `course_feature_requirements` WHERE `course_id` = :id', ['id' => $courseId]);
+        $this->database->execute(
+            'DELETE FROM `course_feature_requirements` WHERE `course_id` = :id',
+            ['id' => $courseId],
+        );
         foreach ($codes as $code) {
             $featureId = $this->database->scalar(
                 'SELECT `id` FROM `room_features` WHERE `code` = :code',

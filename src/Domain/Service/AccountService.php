@@ -294,7 +294,10 @@ final class AccountService
             throw new ConflictException('An account with those details already exists.');
         }
 
-        $departmentId = $this->departmentForWrite($actor, isset($input['department_id']) ? (int) $input['department_id'] : null);
+        $departmentId = $this->departmentForWrite(
+            $actor,
+            isset($input['department_id']) ? (int) $input['department_id'] : null,
+        );
         $temporary = bin2hex(random_bytes(16));
         $hash = password_hash($temporary, PASSWORD_BCRYPT, ['cost' => $this->passwords->cost()]);
 

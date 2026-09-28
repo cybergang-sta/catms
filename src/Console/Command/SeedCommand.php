@@ -408,7 +408,9 @@ final class SeedCommand extends Command
 
         /** @var array<string, int> $counts */
         $counts = $database->transaction(
-            function (Database $database) use ($rbac, $sql, $counts, $demoUsers, $cost, $input, $environment, $output, $asJson): array {
+            function (
+                Database $database,
+            ) use ($rbac, $sql, $counts, $demoUsers, $cost, $input, $environment, $output, $asJson): array {
             $permissionIds = $this->seedPermissions($database, $rbac);
             $roleIds = $this->seedRoles($database, $rbac);
             $counts['grants'] = $this->seedGrants($database, $rbac, $roleIds, $permissionIds);

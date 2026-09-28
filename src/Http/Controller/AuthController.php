@@ -7,12 +7,12 @@ namespace App\Http\Controller;
 use App\Core\Authenticator;
 use App\Core\Exception\UnauthorizedException;
 use App\Core\Exception\ValidationException;
-use App\Domain\Service\AccountService;
 use App\Core\RateLimiter;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\SecurityEventRecorder;
 use App\Domain\Entity\User;
+use App\Domain\Service\AccountService;
 
 /**
  * The authentication endpoints (FR-AUTH-01 … FR-AUTH-05).

@@ -84,7 +84,11 @@ final class CalendarService
     {
         $this->semester($actor, $scope, $id);
         $changes = [];
-        foreach (['name', 'academic_year', 'start_date', 'end_date', 'teaching_start', 'teaching_end', 'total_weeks', 'status'] as $field) {
+        $editable = [
+            'name', 'academic_year', 'start_date', 'end_date',
+            'teaching_start', 'teaching_end', 'total_weeks', 'status',
+        ];
+        foreach ($editable as $field) {
             if (array_key_exists($field, $input)) {
                 $changes[$field] = $input[$field];
             }
@@ -247,12 +251,18 @@ final class CalendarService
             'reason'       => $this->blank($input['reason'] ?? null),
         ]);
 
-        return $this->database->selectOne('SELECT * FROM `lecturer_availability` WHERE `id` = :id', ['id' => $id]) ?? [];
+        return $this->database->selectOne(
+            'SELECT * FROM `lecturer_availability` WHERE `id` = :id',
+            ['id' => $id],
+        ) ?? [];
     }
 
     public function deleteLecturerAvailability(Identity $actor, int $id): void
     {
-        $row = $this->database->selectOne('SELECT * FROM `lecturer_availability` WHERE `id` = :id', ['id' => $id]);
+        $row = $this->database->selectOne(
+            'SELECT * FROM `lecturer_availability` WHERE `id` = :id',
+            ['id' => $id],
+        );
         if ($row === null) {
             throw new NotFoundException('Availability', $id);
         }

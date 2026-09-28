@@ -17,7 +17,12 @@ final class CourseController extends Controller
     public function index(Request $request): Response
     {
         $page = $this->pagination($request);
-        $result = $this->courses()->list($this->identity($request), $this->scope($request), $request->queryAll(), $page);
+        $result = $this->courses()->list(
+            $this->identity($request),
+            $this->scope($request),
+            $request->queryAll(),
+            $page,
+        );
 
         return Response::success($result['items'], [
             'page' => $page['page'], 'per_page' => $page['per_page'], 'total' => $result['total'],

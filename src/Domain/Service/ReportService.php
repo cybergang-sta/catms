@@ -159,7 +159,8 @@ final class ReportService
     public function dashboard(Identity $identity, string $scope): array
     {
         $bindings = [];
-        $userWhere = '`deleted_at` IS NULL AND `status` = \'active\'' . $this->dept($identity, $scope, 'department_id', $bindings);
+        $userWhere = '`deleted_at` IS NULL AND `status` = \'active\''
+            . $this->dept($identity, $scope, 'department_id', $bindings);
         $allocBindings = [];
         $allocWhere = "`status` = 'proposed'" . $this->dept($identity, $scope, 'department_id', $allocBindings);
         $conflictBindings = [];
@@ -168,10 +169,22 @@ final class ReportService
         $roomWhere = "`status` = 'available'" . $this->dept($identity, $scope, 'department_id', $roomBindings, true);
 
         return [
-            'active_users'         => (int) $this->database->scalar('SELECT COUNT(*) FROM `users` WHERE ' . $userWhere, $bindings),
-            'proposed_allocations' => (int) $this->database->scalar('SELECT COUNT(*) FROM `allocations` WHERE ' . $allocWhere, $allocBindings),
-            'open_conflicts'       => (int) $this->database->scalar('SELECT COUNT(*) FROM `allocation_conflicts` WHERE ' . $conflictWhere, $conflictBindings),
-            'available_rooms'      => (int) $this->database->scalar('SELECT COUNT(*) FROM `rooms` WHERE ' . $roomWhere, $roomBindings),
+            'active_users'         => (int) $this->database->scalar(
+                'SELECT COUNT(*) FROM `users` WHERE ' . $userWhere,
+                $bindings,
+            ),
+            'proposed_allocations' => (int) $this->database->scalar(
+                'SELECT COUNT(*) FROM `allocations` WHERE ' . $allocWhere,
+                $allocBindings,
+            ),
+            'open_conflicts'       => (int) $this->database->scalar(
+                'SELECT COUNT(*) FROM `allocation_conflicts` WHERE ' . $conflictWhere,
+                $conflictBindings,
+            ),
+            'available_rooms'      => (int) $this->database->scalar(
+                'SELECT COUNT(*) FROM `rooms` WHERE ' . $roomWhere,
+                $roomBindings,
+            ),
         ];
     }
 
@@ -249,8 +262,13 @@ final class ReportService
     /**
      * @param array<string, mixed> $bindings
      */
-    private function dept(Identity $identity, string $scope, string $column, array &$bindings, bool $includeShared = false): string
-    {
+    private function dept(
+        Identity $identity,
+        string $scope,
+        string $column,
+        array &$bindings,
+        bool $includeShared = false,
+    ): string {
         if ($scope === 'any' || ($identity->isAdmin() && $identity->departmentId() === null)) {
             return '';
         }

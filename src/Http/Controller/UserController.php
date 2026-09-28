@@ -16,7 +16,12 @@ final class UserController extends Controller
     public function index(Request $request): Response
     {
         $page = $this->pagination($request);
-        $result = $this->accounts()->listUsers($this->identity($request), $this->scope($request), $request->queryAll(), $page);
+        $result = $this->accounts()->listUsers(
+            $this->identity($request),
+            $this->scope($request),
+            $request->queryAll(),
+            $page,
+        );
 
         return Response::success($result['items'], $this->meta($page, $result['total']));
     }
@@ -40,7 +45,11 @@ final class UserController extends Controller
     public function show(Request $request): Response
     {
         return Response::success(
-            $this->accounts()->showUser($this->identity($request), $this->scope($request), $this->param($request, 'id')),
+            $this->accounts()->showUser(
+                $this->identity($request),
+                $this->scope($request),
+                $this->param($request, 'id'),
+            ),
         );
     }
 
