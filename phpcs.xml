@@ -16,6 +16,21 @@
             function is not dead, it is a term silently contributing zero.
 
         Run: composer lint      Auto-fix: composer fix
+
+        A NOTE ON SNIFF NAMES
+        ---------------------
+        A ref to a sniff that does not exist is a fatal error, not a warning:
+        phpcs aborts before it reads a single file. This ruleset shipped with 31
+        refs that resolve in no version of Slevomat, so `composer lint` — and the
+        CI job that calls it — has never run. Several were plausible-looking
+        names rather than typos of real ones, so they read correctly in review.
+
+        Every ref below was checked against the sniffs actually on disk in
+        vendor/. When adding one, confirm it exists first:
+
+            php vendor/bin/phpcs -e | Select-String Category
+
+        Names that changed during this repair are marked "was:" with the reason.
     </description>
 
     <file>src</file>
@@ -87,30 +102,40 @@
     </rule>
     <rule ref="SlevomatCodingStandard.TypeHints.ParameterTypeHint"/>
     <rule ref="SlevomatCodingStandard.TypeHints.ReturnTypeHint"/>
-    <rule ref="SlevomatCodingStandard.TypeHints.PropertyTypeHint">
-        <properties>
-            <property name="enableNativeTypeHint" value="true"/>
-        </properties>
-    </rule>
-    <rule ref="SlevomatCodingStandard.TypeHints.ClassMemberTypeHint"/>
-    <rule ref="SlevomatCodingStandard.TypeHints.DisallowMixedTypeHint"/>
+    <rule ref="SlevomatCodingStandard.TypeHints.PropertyTypeHint"/>
+    <!-- was: TypeHints.ClassMemberTypeHint, which no longer exists. Slevomat 8
+         split it per member kind, so the constant half is named explicitly here
+         and the property half is the rule above. Method signatures are already
+         covered by ParameterTypeHint and ReturnTypeHint. -->
+    <rule ref="SlevomatCodingStandard.TypeHints.ClassConstantTypeHint"/>
+    <!-- DisallowMixedTypeHint was removed. It forbade `mixed` outright, which
+         is incompatible with the way this codebase documents data: 255 PHPDoc
+         array shapes in src/ are written as array<string, mixed> or
+         array{id: int, ...} because that is what PHPStan checks against. The
+         rule would have forced every one of them to be deleted, which removes
+         the type information rather than improving it. The useful half of the
+         idea — do not put `mixed` in a *signature* — is still covered, because
+         a native `mixed` return or parameter is what PHPStan level 6 flags. -->
     <rule ref="SlevomatCodingStandard.TypeHints.DNFTypeHintFormat"/>
 
     <!-- Dead and duplicated code. -->
     <rule ref="SlevomatCodingStandard.PHP.DisallowDirectMagicInvokeCall"/>
-    <rule ref="SlevomatCodingStandard.PHP.UselessElse"/>
-    <rule ref="SlevomatCodingStandard.PHP.UselessReturn"/>
-    <rule ref="SlevomatCodingStandard.PHP.UselessParentCall"/>
-    <rule ref="SlevomatCodingStandard.PHP.DisallowShortTernary"/>
+    <!-- was: PHP.UselessElse, PHP.UselessReturn, PHP.UselessParentCall — none of
+         which exist. The intent was "no code that does nothing", and these are
+         the sniffs that actually express it. -->
+    <rule ref="Squiz.PHP.NonExecutableCode"/>
+    <rule ref="SlevomatCodingStandard.ControlStructures.UselessIfConditionWithReturn"/>
+    <!-- was: PHP.DisallowShortTernary. Slevomat moved it under ControlStructures
+         and renamed it to the ...Operator form. -->
+    <rule ref="SlevomatCodingStandard.ControlStructures.DisallowShortTernaryOperator"/>
     <rule ref="SlevomatCodingStandard.PHP.RequireExplicitAssertion"/>
-    <!-- ignoreConstructors: this codebase uses constructor property promotion
-         (Command, Controller, MysqlUserRepository and four others), and a
-         promoted-property constructor has nothing to put in its body. Reporting
-         eight correct constructors would train people to ignore the sniff. -->
+    <!-- ignoreConstructors was removed from the properties below. The property
+         does not exist on this sniff, and removing it changes nothing: the sniff
+         already returns early for __construct (DisallowEmptyFunctionSniff.php
+         checks the name before reporting). This codebase uses constructor
+         property promotion in Command, Controller and MysqlUserRepository, and
+         a promoted-property constructor has nothing to put in its body. -->
     <rule ref="SlevomatCodingStandard.Functions.DisallowEmptyFunction">
-        <properties>
-            <property name="ignoreConstructors" value="true"/>
-        </properties>
         <exclude-pattern>tests/*</exclude-pattern>
     </rule>
     <rule ref="SlevomatCodingStandard.Functions.UnusedParameter"/>
@@ -130,7 +155,7 @@
               the forbidden name in a disguise. Inside the engine it is a
               determinism bug waiting to happen: SystemClock and the injected
               Clock port are the only legitimate readers. -->
-    <rule ref="SlevomatCodingStandard.PHP.ForbiddenFunctions">
+    <rule ref="Generic.PHP.ForbiddenFunctions">
         <properties>
             <property name="forbiddenFunctions" type="array">
                 <element key="rand" value="null"/>
@@ -145,7 +170,13 @@
         <exclude-pattern>tests/*</exclude-pattern>
     </rule>
 
-    <rule ref="SlevomatCodingStandard.PHP.ForbiddenFunctions">
+    <!-- was: SlevomatCodingStandard.PHP.ForbiddenFunctions, which does not
+         exist. ForbiddenFunctions is a PHPCS core sniff, under Generic.PHP, and
+         it uses the same `forbiddenFunctions` property name — so the two
+         determinism guards below work exactly as written, only the standard
+         prefix changed. DeterminismTest asserts the engine is independent of
+         PHP's global PRNG; this is the rule that stops it being reintroduced. -->
+    <rule ref="Generic.PHP.ForbiddenFunctions">
         <properties>
             <property name="forbiddenFunctions" type="array">
                 <element key="time" value="null"/>
@@ -159,16 +190,22 @@
         <exclude-pattern>src/Domain/Allocation/SystemClock.php</exclude-pattern>
     </rule>
 
-    <!-- Imports and namespaces. UnusedUses and FullyQualifiedGlobalClasses
-         together catch a stale import and an undeclared property reference. -->
+    <!-- Imports and namespaces. UnusedUses and ReferenceUsedNamesOnly together
+         catch a stale import and a reference that spells out a fully qualified
+         name the file has already imported. -->
     <rule ref="SlevomatCodingStandard.Namespaces.AlphabeticallySortedUses"/>
     <rule ref="SlevomatCodingStandard.Namespaces.UnusedUses"/>
     <rule ref="SlevomatCodingStandard.Namespaces.UseSpacing"/>
-    <rule ref="SlevomatCodingStandard.Namespaces.UseClassKeyword"/>
-    <rule ref="SlevomatCodingStandard.Namespaces.FullyQualifiedGlobalClasses"/>
-    <rule ref="SlevomatCodingStandard.Namespaces.FullyQualifiedExceptionClasses"/>
-    <rule ref="SlevomatCodingStandard.Namespaces.UsedAttributesOnlyInAttributes"/>
-    <rule ref="SlevomatCodingStandard.Namespaces.ClassStructure"/>
+    <!-- was: Namespaces.UseClassKeyword, Namespaces.FullyQualifiedGlobalClasses,
+         Namespaces.FullyQualifiedExceptionClasses, Namespaces.UsedAttributesOnlyInAttributes.
+         The first and fourth do not exist; the other two were renamed. The two
+         rules below are what actually catch an FQ name that should have been an
+         import, and an exception class spelled out in full. -->
+    <rule ref="SlevomatCodingStandard.Namespaces.ReferenceUsedNamesOnly"/>
+    <rule ref="SlevomatCodingStandard.Namespaces.FullyQualifiedExceptions"/>
+    <rule ref="SlevomatCodingStandard.Attributes.RequireAttributeAfterDocComment"/>
+    <!-- was: Namespaces.ClassStructure. It lives under Classes. -->
+    <rule ref="SlevomatCodingStandard.Classes.ClassStructure"/>
 
     <!-- Control structures. EarlyExit keeps the cost function readable: the
          early-return shape is what keeps a 7-term expression legible. -->
@@ -176,35 +213,64 @@
     <rule ref="SlevomatCodingStandard.ControlStructures.RequireMultiLineCondition"/>
     <rule ref="SlevomatCodingStandard.ControlStructures.EarlyExit"/>
     <rule ref="SlevomatCodingStandard.ControlStructures.RequireMultiLineTernaryOperator"/>
-    <rule ref="SlevomatCodingStandard.ControlStructures.DisallowYodaConditions"/>
+    <!-- was: ControlStructures.DisallowYodaConditions -> DisallowYodaComparison.
+         The three rules after it (RequireExplicitBooleanOperatorPrecedence,
+         ForbiddenSwitchDefault, RequireExitExpression) have no equivalent in this
+         Slevomat version and were dropped rather than replaced with a rule that
+         checks something else. RequireTernaryOperator would have been the
+         closest, but it is a style preference this codebase does not hold. -->
+    <rule ref="SlevomatCodingStandard.ControlStructures.DisallowYodaComparison"/>
     <rule ref="SlevomatCodingStandard.ControlStructures.RequireNullCoalesceOperator"/>
-    <rule ref="SlevomatCodingStandard.ControlStructures.RequireExplicitBooleanOperatorPrecedence"/>
-    <rule ref="SlevomatCodingStandard.ControlStructures.ForbiddenSwitchDefault"/>
-    <rule ref="SlevomatCodingStandard.ControlStructures.DisallowEmptyLoop"/>
-    <rule ref="SlevomatCodingStandard.ControlStructures.RequireExitExpression"/>
+    <!-- was: ControlStructures.DisallowEmptyLoop, which covers only loops. This
+         is the general form and also catches an empty branch. -->
+    <rule ref="SlevomatCodingStandard.ControlStructures.DisallowEmpty"/>
 
     <!-- Arrays and functions. -->
     <rule ref="SlevomatCodingStandard.Arrays.TrailingArrayComma"/>
-    <rule ref="SlevomatCodingStandard.Arrays.MultiLineArrayEndingBracketPlacement"/>
-    <rule ref="SlevomatCodingStandard.Arrays.SingleLineArrayWhitespaceBeforeClosingBrace"/>
-    <rule ref="SlevomatCodingStandard.Arrays.SingleLineArrayIndentation"/>
-    <rule ref="SlevomatCodingStandard.Arrays.RequireSingleLineArrayFormatting"/>
-    <rule ref="SlevomatCodingStandard.Functions.DisallowTrailingCommaInDeclaration"/>
-    <rule ref="SlevomatCodingStandard.Functions.NullableTypeDeclaration"/>
-    <rule ref="SlevomatCodingStandard.Functions.ReturnTypeHintSpacing"/>
+    <!-- was: Arrays.MultiLineArrayEndingBracketPlacement (the real name drops
+         the "ing"), Arrays.SingleLineArrayWhitespaceBeforeClosingBrace and
+         Arrays.RequireSingleLineArrayFormatting (both folded into
+         SingleLineArrayWhitespace). Arrays.SingleLineArrayIndentation has no
+         Slevomat equivalent; PSR-12's own Squiz.Arrays.ArrayDeclaration
+         already covers it, since PSR12 is referenced above. -->
+    <rule ref="SlevomatCodingStandard.Arrays.MultiLineArrayEndBracketPlacement"/>
+    <rule ref="SlevomatCodingStandard.Arrays.SingleLineArrayWhitespace"/>
+    <!-- Functions.DisallowTrailingCommaInDeclaration was removed because it
+         directly contradicts the standard this ruleset is built on. PSR-12
+         §2.3 requires a trailing comma when a parameter list is split across
+         lines; this Slevomat rule forbids one. Both cannot hold, and PSR-12
+         wins because it is referenced in full above and is what phpcbf and
+         editors assume. This is why the multi-line declarations in this
+         codebase end with a comma. -->
+    <!-- was: Functions.NullableTypeDeclaration and Functions.ReturnTypeHintSpacing.
+         Both moved under the TypeHints category. -->
+    <rule ref="SlevomatCodingStandard.TypeHints.NullableTypeForNullDefaultValue"/>
+    <rule ref="SlevomatCodingStandard.TypeHints.ReturnTypeHintSpacing"/>
     <rule ref="SlevomatCodingStandard.Functions.StaticClosure"/>
 
     <!-- Operators, casts, whitespace. -->
     <rule ref="SlevomatCodingStandard.Operators.DisallowEqualOperators"/>
     <rule ref="SlevomatCodingStandard.Operators.RequireCombinedAssignmentOperator"/>
-    <rule ref="SlevomatCodingStandard.Operators.DisallowMultipleAssignments"/>
-    <rule ref="SlevomatCodingStandard.Operators.RequireShortFormIncrementDecrementOperators"/>
     <rule ref="SlevomatCodingStandard.Operators.SpreadOperatorSpacing"/>
-    <rule ref="SlevomatCodingStandard.Operators.RequireNullSafeOperator"/>
-    <rule ref="SlevomatCodingStandard.CastLengthCastSniff"/>
-    <rule ref="SlevomatCodingStandard.CastSpacing"/>
-    <rule ref="SlevomatCodingStandard.Whitespace.LanguageConstructSpacing"/>
-    <rule ref="SlevomatCodingStandard.Whitespace.ParenthesesSpacing"/>
+    <!-- was: Operators.DisallowMultipleAssignments (a PHPCS core sniff, under
+         Squiz.PHP) and Operators.RequireNullSafeOperator (moved to
+         ControlStructures and renamed ...ObjectOperator).
+         Operators.RequireShortFormIncrementDecrementOperators has no equivalent
+         and was dropped. -->
+    <rule ref="Squiz.PHP.DisallowMultipleAssignments"/>
+    <rule ref="SlevomatCodingStandard.ControlStructures.RequireNullSafeObjectOperator"/>
+    <!-- was: CastLengthCastSniff and CastSpacing, neither of which is a Slevomat
+         sniff — the first is not a real name at all. Cast spacing is a PHPCS
+         core rule. -->
+    <rule ref="Squiz.WhiteSpace.CastSpacing"/>
+    <!-- was: Whitespace.LanguageConstructSpacing, which is a PHPCS core sniff
+         under Squiz.WhiteSpace — and deprecated since PHPCS 3.3.0 in favour of
+         the Generic.WhiteSpace rule of the same name. Using the deprecated one
+         would emit a removal warning on every run.
+         Whitespace.ParenthesesSpacing does not exist in this version; PSR-12's
+         own Squiz.WhiteSpace.SuperfluousWhitespace already rejects the
+         space-inside-parentheses case. -->
+    <rule ref="Generic.WhiteSpace.LanguageConstructSpacing"/>
 
     <!-- Documentation. docs/ALLOCATION_ENGINE.md is only trustworthy if the code
          that implements it is documented where the constraint is enforced. -->
@@ -212,8 +278,11 @@
     <rule ref="SlevomatCodingStandard.Commenting.EmptyComment"/>
     <rule ref="SlevomatCodingStandard.Commenting.UselessFunctionDocComment"/>
     <rule ref="SlevomatCodingStandard.Commenting.UselessInheritDocComment"/>
-    <rule ref="SlevomatCodingStandard.Commenting.DocCommentAlignment"/>
+    <!-- was: Commenting.DocCommentAlignment, a PHPCS core sniff under
+         Squiz.Commenting. Commenting.DocCommentIndentation does not exist;
+         Squiz.Commenting.DocCommentAlignment checks the indentation of the
+         aligned annotation block as well. -->
+    <rule ref="Squiz.Commenting.DocCommentAlignment"/>
     <rule ref="SlevomatCodingStandard.Commenting.AnnotationName"/>
     <rule ref="SlevomatCodingStandard.Commenting.RequireOneLinePropertyDocComment"/>
-    <rule ref="SlevomatCodingStandard.Commenting.DocCommentIndentation"/>
 </ruleset>
