@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Allocation;
 
+use function count;
+
 /**
  * Self-contained, seeded pseudo-random number generator.
  *
@@ -62,19 +64,10 @@ final class Rng
         $z = ($z ^ ($z >> 13)) & self::MASK;
         $z = ($z + 0x2545F491) & self::MASK; // 0x2545F491 = 625364625
 
-        $this->s0 = $z === 0 ? 0x9E3779B9 : $z;              // 2654435769
+        $this->s0 = $z === 0
+            ? 0x9E3779B9
+            : $z;              // 2654435769
         $this->s1 = self::scramble($z ^ 0x7F4A7C15);
-    }
-
-    /** One SplitMix finalizer step; 31-bit safe (shift and mask only). */
-    private static function scramble(int $x): int
-    {
-        $x &= self::MASK;
-        $x = ($x ^ ($x >> 16)) & self::MASK;
-        $x = ($x ^ ($x >> 13)) & self::MASK;
-        $x = ($x ^ ($x >> 7)) & self::MASK;
-
-        return $x === 0 ? 0x27BB2EE7 : $x;
     }
 
     /**
@@ -162,7 +155,6 @@ final class Rng
      * Pick one element at random, or null when the array is empty.
      *
      * @template T
-     *
      * @param  array<array-key, T> $items
      * @return T|null
      */
@@ -174,7 +166,7 @@ final class Rng
 
         $values = array_values($items);
 
-        return $values[$this->int(0, \count($values) - 1)];
+        return $values[$this->int(0, count($values) - 1)];
     }
 
     /**
@@ -182,14 +174,13 @@ final class Rng
      * fewer when the input holds fewer than $count items.
      *
      * @template T
-     *
      * @param  array<array-key, T> $items
      * @return list<T>
      */
     public function sample(array $items, int $count): array
     {
         $values = array_values($items);
-        $count = min($count, \count($values));
+        $count = min($count, count($values));
 
         if ($count <= 0) {
             return [];
@@ -197,7 +188,7 @@ final class Rng
 
         // Partial Fisher-Yates.
         for ($i = 0; $i < $count; $i++) {
-            $j = $this->int($i, \count($values) - 1);
+            $j = $this->int($i, count($values) - 1);
             [$values[$i], $values[$j]] = [$values[$j], $values[$i]];
         }
 
@@ -208,7 +199,6 @@ final class Rng
      * Fisher-Yates shuffle. Deterministic for a given seed.
      *
      * @template T
-     *
      * @param  array<array-key, T> $items
      * @return list<T>
      */
@@ -216,11 +206,24 @@ final class Rng
     {
         $values = array_values($items);
 
-        for ($i = \count($values) - 1; $i > 0; $i--) {
+        for ($i = count($values) - 1; $i > 0; $i--) {
             $j = $this->int(0, $i);
             [$values[$i], $values[$j]] = [$values[$j], $values[$i]];
         }
 
         return $values;
+    }
+
+    /** One SplitMix finalizer step; 31-bit safe (shift and mask only). */
+    private static function scramble(int $x): int
+    {
+        $x &= self::MASK;
+        $x = ($x ^ ($x >> 16)) & self::MASK;
+        $x = ($x ^ ($x >> 13)) & self::MASK;
+        $x = ($x ^ ($x >> 7)) & self::MASK;
+
+        return $x === 0
+            ? 0x27BB2EE7
+            : $x;
     }
 }

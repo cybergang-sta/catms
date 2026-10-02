@@ -11,6 +11,7 @@ use App\Domain\Allocation\Room;
 use App\Domain\Allocation\RoomFeatures;
 use App\Domain\Allocation\SchedulingProblem;
 use App\Domain\Allocation\SessionRequest;
+use Tests\Unit\Allocation\Fixture\ProblemBuilder;
 
 /**
  * HC-1 … HC-10, one test each.
@@ -25,70 +26,21 @@ use App\Domain\Allocation\SessionRequest;
  */
 final class HardConstraintTest extends EngineTestCase
 {
-    /**
-     * A two-room, two-slot problem with one cohort and one lecturer.
-     */
-    private function base(): SchedulingProblem
+    public function testHc1RejectsARoomAlreadyBookedInThatSlot(): void
     {
-        return (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(50, shared: true)
             ->room(50, shared: true)
             ->session(1, 1, enrolledCount: 30)
+            ->session(2, 2, enrolledCount: 30) // different cohort AND lecturer
             ->build();
-    }
-
-    private function assertCode(
-        SchedulingProblem $problem,
-        OccupancyIndex $occupancy,
-        Assignment $candidate,
-        string $expected,
-    ): void {
-        $checker = new ConstraintChecker();
-        $codes = array_map(
-            static fn ($v): string => $v->code,
-            $checker->check($candidate, $occupancy, $problem),
-        );
-
-        self::assertContains(
-            $expected,
-            $codes,
-            sprintf(
-                'Expected %s but the checker reported [%s] for session %d in room %d at slot %d.',
-                $expected,
-                implode(', ', $codes) ?: 'nothing',
-                $candidate->sessionId(),
-                $candidate->roomId(),
-                $candidate->timeSlotId(),
-            ),
-        );
-    }
-
-    private function assertNoCode(
-        SchedulingProblem $problem,
-        OccupancyIndex $occupancy,
-        Assignment $candidate,
-        string $unexpected,
-    ): void {
-        $checker = new ConstraintChecker();
-        $codes = array_map(
-            static fn ($v): string => $v->code,
-            $checker->check($candidate, $occupancy, $problem),
-        );
-
-        self::assertNotContains($unexpected, $codes);
-    }
-
-    // --- HC-1 -------------------------------------------------------------
-
-    public function testHc1RejectsARoomAlreadyBookedInThatSlot(): void
-    {
-        $problem = $this->base();
 
         $occupancy = new OccupancyIndex();
         $occupancy->place(new Assignment(1, 1, 1), $problem);
 
-        $this->assertCode($problem, $occupancy, new Assignment(1, 2, 1), ConstraintChecker::HC_ROOM_FREE);
+        $this->assertCode($problem, $occupancy, new Assignment(2, 1, 1), ConstraintChecker::HC_ROOM_FREE);
+        $this->assertNoCode($problem, $occupancy, new Assignment(2, 2, 1), ConstraintChecker::HC_ROOM_FREE);
     }
 
     public function testHc1AcceptsTheSameRoomInADifferentSlot(): void
@@ -105,7 +57,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc2RejectsALecturerAlreadyTeachingInThatSlot(): void
     {
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(50, shared: true)
             ->session(1, 1, enrolledCount: 30)
@@ -122,7 +74,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc3RejectsACohortAlreadyInClassInThatSlot(): void
     {
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(50, shared: true)
             ->room(50, shared: true)
@@ -138,7 +90,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc3AllowsACohortInTwoRoomsAcrossTheDay(): void
     {
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->standardWeek(2)
             ->room(50, shared: true)
             ->room(50, shared: true)
@@ -156,7 +108,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc4RejectsARoomTooSmallForTheCohort(): void
     {
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(20, shared: true)
             ->session(1, 1, enrolledCount: 30)
@@ -167,7 +119,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc4AcceptsAExactlyFittingRoom(): void
     {
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(30, shared: true)
             ->session(1, 1, enrolledCount: 30)
@@ -180,7 +132,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc5RejectsARoomMissingAMandatoryFeature(): void
     {
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(50, features: ['projector', 'whiteboard'], shared: true)
             ->session(1, 1, enrolledCount: 30, requiredFeatures: ['projector', 'lab_bench'])
@@ -201,7 +153,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc6RejectsARoomUnderMaintenance(): void
     {
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(50, status: 'maintenance', shared: true)
             ->session(1, 1, enrolledCount: 30)
@@ -217,7 +169,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc6RejectsAnUnbookableRoomEvenWhenAvailable(): void
     {
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(50, status: 'available', bookable: false, shared: true)
             ->session(1, 1, enrolledCount: 30)
@@ -235,7 +187,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc7RejectsASlotOutsideTheTeachingWindow(): void
     {
-        $builder = new \Tests\Unit\Allocation\Fixture\ProblemBuilder();
+        $builder = new ProblemBuilder();
         $builder->standardWeek(1)
             ->room(50, shared: true)
             ->session(1, 1, enrolledCount: 30);
@@ -255,7 +207,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc7RejectsAnInactiveSlot(): void
     {
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->slot(1, '08:00', '09:00', active: false)
             ->room(50, shared: true)
             ->session(1, 1, enrolledCount: 30)
@@ -273,7 +225,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc8RejectsAnUnavailableLecturerSlot(): void
     {
-        $builder = new \Tests\Unit\Allocation\Fixture\ProblemBuilder();
+        $builder = new ProblemBuilder();
         $builder->standardWeek(2)
             ->room(50, shared: true)
             ->room(50, shared: true)
@@ -292,7 +244,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc8RejectsALecturerUnavailableForTheWholeDay(): void
     {
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->standardWeek(2)
             ->room(50, shared: true)
             ->room(50, shared: true)
@@ -302,13 +254,14 @@ final class HardConstraintTest extends EngineTestCase
 
         $occupancy = new OccupancyIndex();
 
-        $this->assertCode($problem, $occupancy, new Assignment(1, 1, 1), ConstraintChecker::HC_LECTURER_AVAILABLE);
-        $this->assertNoCode($problem, $occupancy, new Assignment(1, 1, 2), ConstraintChecker::HC_LECTURER_AVAILABLE);
+        // standardWeek(2): slots 1–2 are Monday, slots 3–4 Tuesday.
+        $this->assertCode($problem, $occupancy, new Assignment(1, 1, 2), ConstraintChecker::HC_LECTURER_AVAILABLE);
+        $this->assertNoCode($problem, $occupancy, new Assignment(1, 1, 3), ConstraintChecker::HC_LECTURER_AVAILABLE);
     }
 
     public function testHc8EnforcesTheDailyLoadCeiling(): void
     {
-        $builder = new \Tests\Unit\Allocation\Fixture\ProblemBuilder();
+        $builder = new ProblemBuilder();
         $builder->standardWeek(1)->room(50, shared: true);
 
         for ($i = 1; $i <= 5; $i++) {
@@ -339,7 +292,7 @@ final class HardConstraintTest extends EngineTestCase
         // must not count against the ceiling. Getting this wrong makes a full
         // lecturer look permanently unavailable and silently caps every
         // timetable at three sessions a day.
-        $builder = new \Tests\Unit\Allocation\Fixture\ProblemBuilder();
+        $builder = new ProblemBuilder();
         $builder->standardWeek(1)->room(50, shared: true);
 
         for ($i = 1; $i <= 5; $i++) {
@@ -369,7 +322,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc8ExcludingASessionOnAnotherDayMustNotDiscountTheLoad(): void
     {
-        $builder = new \Tests\Unit\Allocation\Fixture\ProblemBuilder();
+        $builder = new ProblemBuilder();
         $builder->standardWeek(2)->room(50, shared: true)->room(50, shared: true);
 
         $builder->session(1, 1, enrolledCount: 30);
@@ -383,7 +336,7 @@ final class HardConstraintTest extends EngineTestCase
 
         $slotIds = $builder->slotIds();
         $monday = $slotIds[0];   // day 1
-        $tuesday = $slotIds[1];  // day 2
+        $tuesday = $slotIds[2];  // day 2 — standardWeek(2) puts two slots on each day
 
         // Four on Monday, and session 5 parked on Tuesday.
         for ($i = 1; $i <= 4; $i++) {
@@ -407,7 +360,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc9RejectsARoomBlockedForMaintenanceInThatSlot(): void
     {
-        $builder = new \Tests\Unit\Allocation\Fixture\ProblemBuilder();
+        $builder = new ProblemBuilder();
         $builder->standardWeek(2)
             ->room(50, shared: true, unavailableSlotIds: [2])
             ->session(1, 1, enrolledCount: 30);
@@ -432,7 +385,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc10RejectsARoomScopedToAnotherDepartment(): void
     {
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(50, shared: false, departmentId: 2)
             ->session(1, 1, enrolledCount: 30, departmentId: 1)
@@ -448,7 +401,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc10AllowsASharedRoomRegardlessOfDepartment(): void
     {
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(50, shared: true, departmentId: 2)
             ->session(1, 1, enrolledCount: 30, departmentId: 1)
@@ -464,7 +417,7 @@ final class HardConstraintTest extends EngineTestCase
 
     public function testHc10AllowsARoomOwnedByTheSchedulingDepartment(): void
     {
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(50, shared: false, departmentId: 1)
             ->session(1, 1, enrolledCount: 30, departmentId: 1)
@@ -485,7 +438,7 @@ final class HardConstraintTest extends EngineTestCase
         // A diagnostic that stops at the first failure makes the admin fix one
         // problem, re-run, and discover the next. FR-ALLOC-05 asks for a count
         // and a reason, which requires all of them.
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(10, features: [], shared: false, departmentId: 99) // too small, no features, wrong department
             ->session(1, 1, enrolledCount: 30, requiredFeatures: ['lab_bench'], departmentId: 1)
@@ -541,7 +494,7 @@ final class HardConstraintTest extends EngineTestCase
         // The two methods are separate implementations of the same predicate.
         // They are the only two gates a candidate passes, so a divergence in
         // either direction is a correctness bug.
-        $builder = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $builder = (new ProblemBuilder())
             ->standardWeek(2)
             ->room(20, shared: true)
             ->room(50, features: ['projector'], shared: true)
@@ -572,5 +525,59 @@ final class HardConstraintTest extends EngineTestCase
                 }
             }
         }
+    }
+
+    /**
+     * A two-room, two-slot problem with one cohort and one lecturer.
+     */
+    private function base(): SchedulingProblem
+    {
+        return (new ProblemBuilder())
+            ->standardWeek(1)
+            ->room(50, shared: true)
+            ->room(50, shared: true)
+            ->session(1, 1, enrolledCount: 30)
+            ->build();
+    }
+
+    private function assertCode(
+        SchedulingProblem $problem,
+        OccupancyIndex $occupancy,
+        Assignment $candidate,
+        string $expected,
+    ): void {
+        $checker = new ConstraintChecker();
+        $codes = array_map(
+            static fn ($v): string => $v->code,
+            $checker->check($candidate, $occupancy, $problem),
+        );
+
+        self::assertContains(
+            $expected,
+            $codes,
+            sprintf(
+                'Expected %s but the checker reported [%s] for session %d in room %d at slot %d.',
+                $expected,
+                implode(', ', $codes) ?: 'nothing',
+                $candidate->sessionId(),
+                $candidate->roomId(),
+                $candidate->timeSlotId(),
+            ),
+        );
+    }
+
+    private function assertNoCode(
+        SchedulingProblem $problem,
+        OccupancyIndex $occupancy,
+        Assignment $candidate,
+        string $unexpected,
+    ): void {
+        $checker = new ConstraintChecker();
+        $codes = array_map(
+            static fn ($v): string => $v->code,
+            $checker->check($candidate, $occupancy, $problem),
+        );
+
+        self::assertNotContains($unexpected, $codes);
     }
 }

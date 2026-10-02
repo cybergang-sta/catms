@@ -1,0 +1,55 @@
+{
+    "assignments": [
+        {
+            "session_id": 1,
+            "room_id": 1,
+            "time_slot_id": 1,
+            "cost": 0.325
+        },
+        {
+            "session_id": 2,
+            "room_id": 1,
+            "time_slot_id": 3,
+            "cost": 0.325
+        },
+        {
+            "session_id": 3,
+            "room_id": 2,
+            "time_slot_id": 3,
+            "cost": 0.3625
+        },
+        {
+            "session_id": 4,
+            "room_id": 2,
+            "time_slot_id": 2,
+            "cost": 0.3625
+        },
+        {
+            "session_id": 5,
+            "room_id": 4,
+            "time_slot_id": 2,
+            "cost": 0.85
+        },
+        {
+            "session_id": 6,
+            "room_id": 4,
+            "time_slot_id": 1,
+            "cost": 0.85
+        }
+    ],
+    "unallocated": [],
+    "violations": [],
+    "metrics": {
+        "total_sessions": 6,
+        "assigned_sessions": 6,
+        "unallocated_sessions": 0,
+        "accuracy": 1,
+        "total_penalty": 3.075,
+        "seat_utilisation": 0.675,
+        "iterations": 250,
+        "random_seed": 20260801,
+        "timed_out": true,
+        "warm_start_rejected": 0,
+        "warm_start_by_cause": []
+    }
+}

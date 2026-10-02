@@ -43,7 +43,9 @@ final class MysqlUserRepository implements UserRepository
             ['id' => $userId],
         );
 
-        return $row === null ? null : User::fromRow($row);
+        return $row === null
+            ? null
+            : User::fromRow($row);
     }
 
     public function findByEmail(string $email): ?User
@@ -55,7 +57,9 @@ final class MysqlUserRepository implements UserRepository
             ['email' => strtolower(trim($email))],
         );
 
-        return $row === null ? null : User::fromRow($row);
+        return $row === null
+            ? null
+            : User::fromRow($row);
     }
 
     public function credentialsForEmail(string $email): ?array
@@ -215,6 +219,8 @@ final class MysqlUserRepository implements UserRepository
             ['id' => $userId],
         );
 
-        return is_string($value) ? $value : null;
+        return is_string($value)
+            ? $value
+            : null;
     }
 }

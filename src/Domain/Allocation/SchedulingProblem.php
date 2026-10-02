@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Allocation;
 
+use function count;
+
 /**
  * The immutable input to one engine run: everything to be scheduled, every space
  * available, and the calendar that bounds them.
@@ -85,9 +87,11 @@ final class SchedulingProblem
     {
         foreach ($slots as $slot) {
             $this->slots[$slot->id()] = $slot;
-            if ($slot->isActive()) {
-                $this->activeSlots[$slot->id()] = true;
+            if (!$slot->isActive()) {
+                continue;
             }
+
+            $this->activeSlots[$slot->id()] = true;
         }
 
         if ($teachableSlotIds !== null) {
@@ -112,12 +116,14 @@ final class SchedulingProblem
     {
         foreach ($entries as $entry) {
             $lecturerId = $entry['lecturer_id'];
-            if (isset($entry['slot_id']) && $entry['slot_id'] !== null) {
+            if (isset($entry['slot_id'])) {
                 $this->lecturerUnavailable[$lecturerId . '|' . $entry['slot_id']] = true;
             }
-            if (isset($entry['day_of_week']) && $entry['day_of_week'] !== null) {
-                $this->lecturerUnavailable[$lecturerId . ' ' . $entry['day_of_week']] = true;
+            if (!isset($entry['day_of_week'])) {
+                continue;
             }
+
+            $this->lecturerUnavailable[$lecturerId . ' ' . $entry['day_of_week']] = true;
         }
 
         return $this;
@@ -242,6 +248,6 @@ final class SchedulingProblem
 
     public function totalSessions(): int
     {
-        return \count($this->sessions);
+        return count($this->sessions);
     }
 }

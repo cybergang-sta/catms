@@ -68,7 +68,7 @@ final class RateLimiter
         $windowStart = $now - ($now % $window);
         $key = self::key($bucket, $subject);
 
-        $hits = $this->database->transaction(function (Database $database) use ($key, $windowStart, $window): int {
+        $hits = $this->database->transaction(function (Database $database) use ($key, $windowStart): int {
             $database->execute(
                 'INSERT INTO `rate_limit_buckets` (`bucket_key`, `window_start`, `hits`)
                  VALUES (:bucket_key, FROM_UNIXTIME(:window_start), 1)

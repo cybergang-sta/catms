@@ -148,6 +148,8 @@ final class MysqlRefreshTokenRepository implements RefreshTokenRepository
 
         $packed = @inet_pton($ip);
 
-        return $packed === false ? null : $packed;
+        return $packed === false
+            ? null
+            : $packed;
     }
 }

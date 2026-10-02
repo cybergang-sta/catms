@@ -84,12 +84,19 @@ final class AllocationEngine
 
         $costFunction = $this->buildCostFunction($problem, $existing);
 
-        // Replay the adopted warm-start rows into the fresh ledger.
-        foreach ($current as $assignment) {
+        // Replay the adopted warm-start rows into the fresh ledger, scoring each
+        // one: local search only accepts a move that beats the current cost, so
+        // an unscored (zero-cost) row could never be improved.
+        ksort($current);
+        foreach ($current as $sessionId => $assignment) {
             $session = $problem->sessionById($assignment->sessionId());
-            if ($session !== null) {
-                $costFunction->noteUse($assignment->roomId(), $assignment->timeSlotId(), $session->cohortId());
+            if ($session === null) {
+                continue;
             }
+
+            $breakdown = $costFunction->evaluate($assignment, $problem);
+            $current[$sessionId] = $assignment->withCost($breakdown->total, $breakdown->weighted);
+            $costFunction->noteUse($assignment->roomId(), $assignment->timeSlotId(), $session->cohortId());
         }
 
         // --- Phase 1: most-constrained-first greedy construction -------------
@@ -493,11 +500,11 @@ final class AllocationEngine
         $iterations = 0;
 
         for ($i = 0; $i < $options->maxIterations; $i++) {
-            $iterations++;
-
             if ($clock->now() >= $deadline) {
                 break; // time budget exhausted; keep the best solution seen
             }
+
+            $iterations++;
 
             $sessionId = $sessionIds[$this->rng->int(0, \count($sessionIds) - 1)];
             $placed = $current[$sessionId] ?? null;
@@ -604,6 +611,18 @@ final class AllocationEngine
                 continue; // not a move
             }
 
+            $candidates[] = $candidate;
+        }
+
+        if (\count($candidates) > $options->maxNeighbours) {
+            // Sample rather than truncate, so repeated visits are not biased
+            // towards the lowest room ids. Sampling first keeps the step
+            // O(maxNeighbours) in checks and evaluations, not O(rooms × slots).
+            $candidates = $this->rng->sample($candidates, $options->maxNeighbours);
+        }
+
+        $costed = [];
+        foreach ($candidates as $candidate) {
             // Re-verify defensively: the generator is a filter, but the
             // acceptance decision must never rest on a single code path.
             if (! $this->checker->isFeasible($candidate, $occupancy, $problem)) {
@@ -611,16 +630,10 @@ final class AllocationEngine
             }
 
             $breakdown = $costFunction->evaluate($candidate, $problem);
-            $candidates[] = $candidate->withCost($breakdown->total, $breakdown->weighted);
+            $costed[] = $candidate->withCost($breakdown->total, $breakdown->weighted);
         }
 
-        if (\count($candidates) > $options->maxNeighbours) {
-            // Sample rather than truncate, so repeated visits are not biased
-            // towards the lowest room ids.
-            return $this->rng->sample($candidates, $options->maxNeighbours);
-        }
-
-        return $candidates;
+        return $costed;
     }
 
     // -----------------------------------------------------------------------

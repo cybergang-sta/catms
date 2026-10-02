@@ -167,12 +167,27 @@ final class GoldenFileTest extends EngineTestCase
      * Drop the volatile fields so the snapshot is stable across machines.
      * Wall-clock duration in particular would make the test fail on a slow CI
      * runner for no reason at all.
+     *
+     * The result is then pushed through json_encode/json_decode. A baseline is
+     * a JSON file, and JSON has one number type: `round()` yields float(1.0),
+     * which encodes as `1` and decodes back as int(1). Comparing the decoded
+     * baseline with assertSame against a freshly computed float therefore fails
+     * on every whole number — including `accuracy` on a fully placed run — no
+     * matter what the engine does. Round-tripping both sides makes the types
+     * match by construction, and keeps assertSame strict about everything JSON
+     * *can* represent.
      */
     private function normalise(array $result): array
     {
         unset($result['metrics']['duration_ms']);
 
-        return $result;
+        $encoded = json_encode($result, JSON_UNESCAPED_SLASHES);
+        self::assertIsString($encoded);
+
+        $decoded = json_decode($encoded, true);
+        self::assertIsArray($decoded);
+
+        return $decoded;
     }
 
     private function readBaseline(): array

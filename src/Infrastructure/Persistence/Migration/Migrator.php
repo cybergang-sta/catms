@@ -50,6 +50,8 @@ final class Migrator
     /**
      * Apply every migration that has not run, in order.
      *
+     * @param (callable(string, string): void)|null $progress Called with the version and a status word.
+     *
      * @return list<string> The versions applied by this call, in order.
      */
     public function migrate(?callable $progress = null): array

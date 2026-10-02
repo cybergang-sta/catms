@@ -46,6 +46,7 @@ final class Viewer
     ) {
     }
 
+    /** @param array<int> $cohortIds */
     public static function student(int $userId, ?int $departmentId, array $cohortIds): self
     {
         return new self('student', $userId, $departmentId, array_values(array_unique($cohortIds)), null);

@@ -73,6 +73,15 @@ final class VerifyIntegrityCommand extends Command
      */
     private const ACCURACY_GATE = 0.90;
 
+    /**
+     * The `--only` targets, in the order they are reported.
+     */
+    private const GROUPS = ['invariants', 'runs', 'privileges', 'migrations', 'demo'];
+
+
+
+
+
     public function name(): string
     {
         return 'verify-integrity';
@@ -171,16 +180,10 @@ final class VerifyIntegrityCommand extends Command
 
             return Kernel::FAILURE;
         }
-    }
+    }// -----------------------------------------------------------------------
+// Groups
+// -----------------------------------------------------------------------
 
-    // -----------------------------------------------------------------------
-    // Groups
-    // -----------------------------------------------------------------------
-
-    /**
-     * The `--only` targets, in the order they are reported.
-     */
-    private const GROUPS = ['invariants', 'runs', 'privileges', 'migrations', 'demo'];
 
     /**
      * Which checks to run for a given `--only` and `--verify-no-demo-credentials`.
@@ -283,7 +286,9 @@ final class VerifyIntegrityCommand extends Command
                 ),
             ]);
 
-            return $failed === [] ? Kernel::SUCCESS : Kernel::FAILURE;
+            return $failed === []
+                ? Kernel::SUCCESS
+                : Kernel::FAILURE;
         }
 
         $output->title('Integrity verification');
@@ -415,6 +420,8 @@ final class VerifyIntegrityCommand extends Command
      * The offending rows are returned rather than just counted, because a count
      * sends the operator back to a SQL prompt and a row sends them straight to
      * the cohort that needs telling (docs/DEPLOYMENT.md §15.5).
+     *
+     * @return array{id: string, group: string, title: string, passed: bool, detail: string, rows: array<int, mixed>}
      */
     private function mustBeEmpty(Database $database, string $id, string $title, string $sql): array
     {
@@ -433,6 +440,7 @@ final class VerifyIntegrityCommand extends Command
         ];
     }
 
+    /** @return array{id: string, group: string, title: string, passed: bool, detail: string, rows: array<int, mixed>} */
     private function activeGuardExists(Database $database): array
     {
         $found = $database->selectOne(
@@ -491,7 +499,9 @@ final class VerifyIntegrityCommand extends Command
         }
 
         $latest = $rows[0];
-        $accuracy = $latest['accuracy'] === null ? null : (float) $latest['accuracy'];
+        $accuracy = $latest['accuracy'] === null
+            ? null
+            : (float) $latest['accuracy'];
         $passed = $accuracy !== null && $accuracy >= self::ACCURACY_GATE;
 
         return [[
@@ -522,6 +532,8 @@ final class VerifyIntegrityCommand extends Command
      * at the same grant (docs/DEPLOYMENT.md §6.5) and both are cheap, which is
      * the point of a control that is checked on every release rather than
      * documented once.
+     *
+     * @return array{id: string, group: string, title: string, passed: bool, detail: string, rows: array<int, mixed>}
      */
     private function privileges(Database $database): array
     {
@@ -531,9 +543,11 @@ final class VerifyIntegrityCommand extends Command
         $lines = [];
         foreach ($database->select('SHOW GRANTS FOR CURRENT_USER') as $row) {
             $line = (string) (array_values($row)[0] ?? '');
-            if ($line !== '') {
-                $lines[] = $line;
+            if ($line === '') {
+                continue;
             }
+
+            $lines[] = $line;
         }
 
         $quoted = '(?:`?' . preg_quote(strtolower($schema), '/') . '`?)';
@@ -545,27 +559,34 @@ final class VerifyIntegrityCommand extends Command
         foreach ($lines as $line) {
             $normalised = strtolower($line);
 
-            if (preg_match('/\bon\s+(?:`?\*(?:\.\*)?`?)/', $normalised) === 1
+            if (
+                preg_match('/\bon\s+(?:`?\*(?:\.\*)?`?)/', $normalised) === 1
                 && str_contains($normalised, 'all privileges')
             ) {
                 $onEverything = true;
             }
 
-            if (preg_match('/\bon\s+' . $quoted . '\.`?audit_log`?(?:\s|$)/', $normalised) === 1) {
-                $onAuditLog[] = $line;
-
-                $hasAll = str_contains($normalised, 'all privileges');
-                $hasUpdate = $hasAll || preg_match('/(?:^|,\s*)update(?:\s|,|$)/', $normalised) === 1;
-                $hasDelete = $hasAll || preg_match('/(?:^|,\s*)delete(?:\s|,|$)/', $normalised) === 1;
-
-                if ($hasUpdate || $hasDelete) {
-                    $canMutate[] = $line;
-                }
+            if (preg_match('/\bon\s+' . $quoted . '\.`?audit_log`?(?:\s|$)/', $normalised) !== 1) {
+                continue;
             }
+
+            $onAuditLog[] = $line;
+
+            $hasAll = str_contains($normalised, 'all privileges');
+            $hasUpdate = $hasAll || preg_match('/(?:^|,\s*)update(?:\s|,|$)/', $normalised) === 1;
+            $hasDelete = $hasAll || preg_match('/(?:^|,\s*)delete(?:\s|,|$)/', $normalised) === 1;
+
+            if (!$hasUpdate && !$hasDelete) {
+                continue;
+            }
+
+            $canMutate[] = $line;
         }
 
         $passed = $canMutate === [];
-        $granted = $onAuditLog === [] ? 'no table-level grant on audit_log' : implode(' | ', $onAuditLog);
+        $granted = $onAuditLog === []
+            ? 'no table-level grant on audit_log'
+            : implode(' | ', $onAuditLog);
 
         $detail = $passed
             ? sprintf('audit_log: %s', $granted)
@@ -601,6 +622,8 @@ final class VerifyIntegrityCommand extends Command
      * that this instance does not have. It does not break the health check and
      * it does not break the login — the first thing to break is whichever
      * endpoint a user happens to hit, which is a far worse way to find out.
+     *
+     * @return array{id: string, group: string, title: string, passed: bool, detail: string, rows: array<int, mixed>}
      */
     private function migrations(): array
     {
@@ -664,6 +687,8 @@ final class VerifyIntegrityCommand extends Command
      * different hash every time and there is no string to search for. The
      * addresses are the identity that matters, and they are the ones the
      * project's own documentation publishes.
+     *
+     * @return array{id: string, group: string, title: string, passed: bool, detail: string, rows: array<int, mixed>}
      */
     private function demoCredentials(Database $database): array
     {
@@ -688,13 +713,15 @@ final class VerifyIntegrityCommand extends Command
                 && (int) $row['must_change_password'] === 0
                 && ($row['locked_until'] === null || strtotime((string) $row['locked_until']) <= time());
 
-            if ($usable) {
-                $live[] = [
-                    'email'                => (string) $row['email'],
-                    'status'               => $status,
-                    'must_change_password' => (int) $row['must_change_password'],
-                ];
+            if (!$usable) {
+                continue;
             }
+
+            $live[] = [
+                'email'                => (string) $row['email'],
+                'status'               => $status,
+                'must_change_password' => (int) $row['must_change_password'],
+            ];
         }
 
         $passed = $live === [];

@@ -115,7 +115,7 @@ h1, h2, h3, p {
 
 h1 {
   font-family: var(--serif);
-  font-weight: 560;
+  font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.08;
   font-size: clamp(2rem, 4vw, 3.15rem);
@@ -123,7 +123,7 @@ h1 {
 
 h2 {
   font-family: var(--serif);
-  font-weight: 560;
+  font-weight: 600;
   letter-spacing: -0.02em;
   font-size: 1.65rem;
 }
@@ -133,7 +133,7 @@ h2 {
   font-size: 0.75rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--ochre);
+  color: var(--ochre-deep);
   font-weight: 700;
 }
 
@@ -212,7 +212,7 @@ h2 {
 
 .points strong {
   color: #f4efe6;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .preview {
@@ -262,7 +262,7 @@ h2 {
 }
 
 .auth-foot {
-  color: #8d8478;
+  color: #c9c2b6;
   font-size: 0.85rem;
 }
 
@@ -298,7 +298,7 @@ h2 {
   justify-content: space-between;
   align-items: baseline;
   font-size: 0.88rem;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .field-label button {
@@ -327,7 +327,9 @@ textarea {
   padding: 0 14px;
 }
 
-input:focus-visible {
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
   border-color: var(--teal);
   outline-color: var(--teal);
 }
@@ -350,7 +352,7 @@ input:focus-visible {
   border: 1px solid transparent;
   text-decoration: none;
   cursor: pointer;
-  font-weight: 680;
+  font-weight: 700;
 }
 
 .btn-primary {
@@ -381,7 +383,7 @@ input:focus-visible {
   font-size: 0.78rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--faint);
+  color: var(--muted);
   margin-bottom: 8px;
 }
 
@@ -422,6 +424,7 @@ input:focus-visible {
   position: sticky;
   top: 0;
   height: 100dvh;
+  overflow-y: auto;
 }
 
 .sidebar .brand {
@@ -465,15 +468,24 @@ input:focus-visible {
   color: var(--ochre);
 }
 
-.user-card {
+.account {
   margin-top: auto;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: center;
+  padding: 10px 12px 6px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.user-card {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px;
-  border-radius: 14px;
+  min-height: 44px;
   text-decoration: none;
-  background: rgba(255, 255, 255, 0.05);
 }
 
 .user-card strong,
@@ -521,6 +533,32 @@ input:focus-visible {
 
 .topbar-spacer {
   flex: 1;
+}
+
+.sign-out {
+  grid-column: 2;
+  justify-self: start;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #f4efe6;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.topbar .sign-out {
+  grid-column: auto;
+  min-height: 44px;
+  padding: 0 10px;
+  color: var(--ink-soft);
+}
+
+@media (min-width: 960px) {
+  .topbar .sign-out {
+    display: none;
+  }
 }
 
 .brand-mobile {
@@ -577,6 +615,7 @@ main {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
+  flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 22px;
 }
@@ -608,7 +647,7 @@ main {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
   margin-bottom: 22px;
 }
@@ -664,7 +703,7 @@ main {
 
 .session .code {
   color: var(--accent);
-  font-weight: 750;
+  font-weight: 700;
   letter-spacing: 0.02em;
 }
 
@@ -724,7 +763,7 @@ main {
 .timeline .when {
   font-size: 0.95rem;
   color: var(--ink);
-  font-weight: 680;
+  font-weight: 700;
 }
 
 .board-wrap {
@@ -733,9 +772,9 @@ main {
 
 .board {
   display: grid;
-  grid-template-columns: 4.5rem repeat(var(--days, 5), minmax(0, 1fr));
+  grid-template-columns: 4.5rem repeat(var(--days, 5), minmax(9.5rem, 1fr));
   gap: 8px;
-  min-width: 0;
+  min-width: calc(4.5rem + var(--days, 5) * 9.5rem);
 }
 
 .days-1 { --days: 1; }
@@ -747,12 +786,13 @@ main {
 .days-7 { --days: 7; }
 
 .board-day {
+  min-width: 0;
   padding: 4px 4px 8px;
 }
 
 .board-day span {
   display: block;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .board-day small,
@@ -772,7 +812,7 @@ main {
 
 .board-day.is-off span,
 .board-day.is-off small {
-  color: var(--faint);
+  color: var(--muted);
 }
 
 .board-cell {
@@ -780,18 +820,22 @@ main {
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .board .session {
+  min-width: 0;
+  max-width: 100%;
   padding: 8px 8px 8px 10px;
 }
 
 .board .session strong,
 .board .session .meta {
-  display: block;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
 }
 
 .day-list {
@@ -844,12 +888,14 @@ main {
 
 .search {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 18px;
 }
 
 .search input {
-  flex: 1;
+  flex: 1 1 10rem;
+  min-width: 0;
 }
 
 .search .btn {
@@ -915,12 +961,16 @@ main {
 
 .room dt {
   font-size: 0.75rem;
-  color: var(--faint);
+  color: var(--muted);
 }
 
 .room dd {
   margin: 0;
   font-weight: 700;
+}
+
+.room .span {
+  grid-column: 1 / -1;
 }
 
 .week-list {
@@ -982,7 +1032,7 @@ main {
 }
 
 .alert-card time {
-  color: var(--faint);
+  color: var(--muted);
   font-size: 0.8rem;
 }
 
@@ -1018,7 +1068,7 @@ main {
   font-size: 0.75rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--faint);
+  color: var(--muted);
 }
 
 .profile-card dd {
@@ -1064,7 +1114,7 @@ main {
 
 .modal-card .code {
   color: var(--teal);
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .modal-card dl {
@@ -1078,7 +1128,7 @@ main {
   font-size: 0.75rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--faint);
+  color: var(--muted);
 }
 
 .modal-card dd {
@@ -1162,6 +1212,10 @@ body.modal-open {
 
   .brand-mobile {
     display: inline-flex;
+  }
+
+  .account .sign-out {
+    display: none;
   }
 
   .topbar,
@@ -1316,7 +1370,7 @@ body.modal-open {
 
 .days legend {
   padding: 0 6px;
-  font-weight: 650;
+  font-weight: 600;
 }
 
 .days label,

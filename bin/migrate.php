@@ -3,6 +3,8 @@
 
 declare(strict_types=1);
 
+use App\Console\Launcher;
+
 /**
  * `php bin/migrate.php` — schema migrations, with the command name implied.
  *
@@ -28,14 +30,13 @@ declare(strict_types=1);
  * whatever happened to come out of PDO.
  */
 
-
-if (\PHP_SAPI !== 'cli') {
+if (PHP_SAPI !== 'cli') {
     http_response_code(403);
     echo "This script must be run from the command line.\n";
     exit(1);
 }
 
-$root = \dirname(__DIR__);
+$root = dirname(__DIR__);
 
 if (! is_file($root . '/vendor/autoload.php')) {
     fwrite(STDERR, "Dependencies are not installed. Run: composer install\n");
@@ -44,4 +45,4 @@ if (! is_file($root . '/vendor/autoload.php')) {
 
 require $root . '/vendor/autoload.php';
 
-exit(App\Console\Launcher::main($argv, 'migrate'));
+exit(Launcher::main($argv, 'migrate'));

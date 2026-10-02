@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Core\Exception;
 
+use Throwable;
+
 /**
  * 401 UNAUTHENTICATED — no usable credential was presented.
  *
@@ -14,10 +16,12 @@ namespace App\Core\Exception;
  */
 final class UnauthorizedException extends CatmsException
 {
+    /** @param array<string, mixed> $details */
     public function __construct(
         string $message = 'Authentication is required.',
         array $details = [],
+        ?Throwable $previous = null,
     ) {
-        parent::__construct('UNAUTHENTICATED', $message, 401, $details, ['WWW-Authenticate' => 'Bearer']);
+        parent::__construct('UNAUTHENTICATED', $message, 401, $details, ['WWW-Authenticate' => 'Bearer'], $previous);
     }
 }

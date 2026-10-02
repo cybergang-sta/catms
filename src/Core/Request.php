@@ -25,7 +25,6 @@ final class Request
      * @param array<string, string> $attributes Filled in by the router; the only
      *                                         mutable part, and only the router
      *                                         may write to it.
-     * @param array<string, mixed>|null $body Decoded JSON body, decoded on first access.
      */
     public function __construct(
         private readonly string $method,
@@ -62,7 +61,7 @@ final class Request
         return new self(
             strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')),
             $path === '' ? '/' : $path,
-            $_GET ?? [],
+            $_GET,
             self::readHeaders($_SERVER),
             $body,
             [],

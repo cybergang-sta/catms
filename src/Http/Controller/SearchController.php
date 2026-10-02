@@ -33,8 +33,9 @@ final class SearchController extends Controller
     public function schedules(Request $request): Response
     {
         $q = trim((string) $request->query('q', ''));
-        if ($q === '') {
-            throw ValidationException::field('q', 'Type a course code or title to search.');
+        $day = $request->queryInt('day_of_week');
+        if ($q === '' && ($day === null || $day < 1 || $day > 7)) {
+            throw ValidationException::field('q', 'Type a course code or title, or choose a day.');
         }
 
         $page = $this->pagination($request);

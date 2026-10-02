@@ -123,13 +123,18 @@ final class Logger
         $this->write($line);
     }
 
+    public function close(): void
+    {
+        if (is_resource($this->handle)) {
+            fclose($this->handle);
+        }
+
+        $this->handle = null;
+    }
+
     /**
      * Replace sensitive values with a marker. Recursive, because a leaked token
      * is just as bad inside `context.user` as it is at the top level.
-     *
-     * @param mixed $value
-     *
-     * @return mixed
      */
     public static function redact(mixed $value): mixed
     {
@@ -151,15 +156,6 @@ final class Logger
         }
 
         return $value;
-    }
-
-    public function close(): void
-    {
-        if (is_resource($this->handle)) {
-            fclose($this->handle);
-        }
-
-        $this->handle = null;
     }
 
     private function write(string $line): void

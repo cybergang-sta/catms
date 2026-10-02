@@ -205,8 +205,6 @@ final class SchedulingProblemLoader
     // -----------------------------------------------------------------------
 
     /**
-     * @param array<string, mixed> $semester
-     *
      * @return array<string, mixed>
      */
     private function semester(int $departmentId, int $semesterId): array
@@ -347,7 +345,7 @@ final class SchedulingProblemLoader
 
         sort($excluded);
 
-        return array_values($excluded);
+        return $excluded;
     }
 
     // -----------------------------------------------------------------------

@@ -76,18 +76,22 @@ final class CandidateGeneratorTest extends EngineTestCase
         }
 
         $candidates = $generator->for(5, $problem, $occupancy);
+        $fullDay = $problem->slotById($slotId)?->dayOfWeek();
 
         self::assertSame(
             [],
-            $candidates,
+            array_values(array_filter(
+                $candidates,
+                static fn (Assignment $a): bool => $problem->slotById($a->timeSlotId())?->dayOfWeek() === $fullDay,
+            )),
             'A lecturer already at their daily ceiling must yield no candidates on that day.',
         );
+        self::assertNotSame([], $candidates, 'The other days of the week are still open to the lecturer.');
     }
 
     public function testThePrefilterCountsAgreeWithTheCheckerToo(): void
     {
-        $builder = $this->loadedProblem();
-        $problem = $builder->build();
+        $problem = $this->loadedProblem();
         $checker = new ConstraintChecker();
         $generator = new CandidateGenerator($checker);
         $occupancy = new OccupancyIndex();

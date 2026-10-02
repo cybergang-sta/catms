@@ -39,9 +39,6 @@ use RuntimeException;
  */
 final class AllocationWriter
 {
-    /** Statuses that occupy a room, a lecturer or a cohort. */
-    private const ACTIVE_STATUSES = ['proposed', 'confirmed', 'updated'];
-
     public function __construct(
         private readonly Database $database,
         private readonly Logger $logger,
@@ -72,6 +69,7 @@ final class AllocationWriter
      *                                       review, `confirmed` when the
      *                                       decision has already been taken.
      * @param array<string, mixed>  $metricsExtra
+     * @param list<int>|null        $limitToSlotIds
      *
      * @throws RuntimeException when the result violates a hard constraint
      */
@@ -102,6 +100,7 @@ final class AllocationWriter
 
     /**
      * @param array<string, mixed> $metricsExtra
+     * @param list<int>|null       $limitToSlotIds
      */
     private function write(
         LoadedProblem $loaded,
@@ -195,6 +194,8 @@ final class AllocationWriter
     // -----------------------------------------------------------------------
 
     /**
+     * @param list<int>|null $slotIds
+     *
      * @return list<array<string, mixed>>
      */
     private function activeRows(LoadedProblem $loaded, ?array $slotIds = null): array
@@ -219,6 +220,8 @@ final class AllocationWriter
      * The conflicts are resolved rather than deleted: the same reasoning as the
      * allocations — an administrator asking "was this ever reported, and what
      * happened to it?" must be able to find out.
+     *
+     * @param list<int>|null $slotIds
      *
      * @return int rows cancelled
      */

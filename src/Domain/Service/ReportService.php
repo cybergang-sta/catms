@@ -276,11 +276,26 @@ final class ReportService
             return '';
         }
         $bindings['scope_dept'] = $identity->departmentId();
+        $quoted = $this->quoteColumn($column);
         if ($includeShared) {
-            return ' AND (`' . $column . '` = :scope_dept OR `' . $column . '` IS NULL)';
+            return ' AND (' . $quoted . ' = :scope_dept OR ' . $quoted . ' IS NULL)';
         }
 
-        return ' AND `' . $column . '` = :scope_dept';
+        return ' AND ' . $quoted . ' = :scope_dept';
+    }
+
+    private function quoteColumn(string $column): string
+    {
+        $parts = explode('.', $column);
+        $quoted = [];
+        foreach ($parts as $part) {
+            if (preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $part) !== 1) {
+                return $column;
+            }
+            $quoted[] = '`' . $part . '`';
+        }
+
+        return implode('.', $quoted);
     }
 
     private function json(mixed $value): mixed

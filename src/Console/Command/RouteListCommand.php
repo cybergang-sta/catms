@@ -80,7 +80,9 @@ final class RouteListCommand extends Command
 
         foreach ($router->all() as $route) {
             $permission = $route['permission'];
-            $permission = is_string($permission) && $permission !== '' ? $permission : null;
+            $permission = is_string($permission) && $permission !== ''
+                ? $permission
+                : null;
 
             if ($permission === null) {
                 $unauthorised++;

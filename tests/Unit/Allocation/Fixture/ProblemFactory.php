@@ -31,12 +31,6 @@ final class ProblemFactory
     /**
      * A problem with a plausible shape: overlapping cohorts, a lecturer who
      * teaches more than one course, rooms of mixed size, some out of scope.
-     *
-     * @param int $sessionCount
-     * @param int $roomCount
-     * @param int $slotCount
-     * @param int $cohortCount
-     * @param int $lecturerCount
      */
     public function random(
         int $sessionCount = 12,
@@ -115,9 +109,11 @@ final class ProblemFactory
 
         // --- a few availability constraints --------------------------------
         for ($i = 0; $i < $lecturerCount; $i++) {
-            if ($this->rng->chance(0.3)) {
-                $builder->lecturerUnavailableDay($i + 1, $this->rng->int(1, 5));
+            if (!$this->rng->chance(0.3)) {
+                continue;
             }
+
+            $builder->lecturerUnavailableDay($i + 1, $this->rng->int(1, 5));
         }
 
         return $builder;

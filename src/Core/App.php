@@ -189,7 +189,6 @@ final class App
         $terminal = function (Request $request) use ($route, $startedAt): Response {
             $handler = $this->resolveHandler($route);
 
-            /** @var Response $response */
             $response = $handler($request);
 
             // NFR-PERF-01: every response carries its own server-side duration, so
@@ -227,6 +226,8 @@ final class App
      * container, and an unimplemented route never reaches here twice.
      *
      * @param array<string, mixed> $route
+     *
+     * @return callable(Request): Response
      */
     private function resolveHandler(array $route): callable
     {

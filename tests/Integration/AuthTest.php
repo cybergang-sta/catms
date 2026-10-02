@@ -53,7 +53,7 @@ final class AuthTest extends HttpTestCase
             'role'                  => 'student',
             'first_name'            => 'Kofi',
             'last_name'             => 'Boateng',
-            'student_index'         => 'IDX' . bin2hex(random_bytes(3)),
+            'student_index'         => (string) random_int(10000000000, 99999999999),
         ]), 201);
 
         self::assertSame('pending', $body['data']['status']);

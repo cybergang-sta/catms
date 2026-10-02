@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Allocation;
 
+use App\Domain\Allocation\Clock;
 use App\Domain\Allocation\EngineOptions;
 use App\Domain\Allocation\FixedClock;
 use Tests\Unit\Allocation\Fixture\ProblemBuilder;
@@ -50,7 +51,8 @@ final class DeterminismTest extends EngineTestCase
         mt_rand();
         srand(2);
         rand();
-        shuffle([1, 2, 3, 4, 5]);
+        $deck = [1, 2, 3, 4, 5];
+        shuffle($deck);
 
         $b = $this->engine()->solve($problem, [], $this->options(maxIterations: 100, seed: 99));
 
@@ -105,10 +107,16 @@ final class DeterminismTest extends EngineTestCase
             ->room(60, shared: true)
             ->session(1, 1, enrolledCount: 30);
 
-        $first = $this->solve($builder, EngineOptions::greedyOnly(5));
-        $second = $this->solve($builder, EngineOptions::greedyOnly(5));
+        $first = $this->solve($builder, EngineOptions::greedyOnly(5))->toArray();
+        $second = $this->solve($builder, EngineOptions::greedyOnly(5))->toArray();
 
-        self::assertEquals($first->toArray(), $second->toArray());
+        // `duration_ms` is a wall-clock measurement of the solve, so it differs
+        // between any two runs — on a loaded machine by several milliseconds.
+        // Comparing it would make this test fail for reasons that have nothing
+        // to do with the generator, which is what this test is about.
+        unset($first['metrics']['duration_ms'], $second['metrics']['duration_ms']);
+
+        self::assertEquals($first, $second);
     }
 
     public function testGreedyConstructionIsIndependentOfSessionInsertionOrder(): void
@@ -132,9 +140,24 @@ final class DeterminismTest extends EngineTestCase
     {
         // EngineOptions::deadlineAt() used to read the clock on every call, so
         // under a real clock the deadline receded as fast as the search advanced
-        // and the budget never expired. With a FixedClock the deadline is a
-        // constant, and the engine must actually stop.
-        $clock = new FixedClock(100.0);
+        // and the budget never expired. The deadline is now fixed from the
+        // start instant, so a clock that jumps past it must stop the search.
+        // The first read is the start of the solve; every later read is 400 s on.
+        $clock = new class implements Clock {
+            private int $reads = 0;
+
+            public function now(): float
+            {
+                return $this->reads++ === 0
+                    ? 100.0
+                    : 500.0;
+            }
+
+            public function nowMs(): int
+            {
+                return (int) round($this->now() * 1000);
+            }
+        };
 
         $options = new EngineOptions(
             maxIterations: 1000,
@@ -145,9 +168,6 @@ final class DeterminismTest extends EngineTestCase
         );
 
         $problem = (new ProblemFactory(782))->solvable(sessions: 10)->build();
-
-        // A clock that jumps past the deadline on the first read.
-        $clock->set(500.0);
 
         $result = $this->engine()->solve($problem, [], $options);
 

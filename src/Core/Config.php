@@ -255,13 +255,8 @@ final class Config
      */
     private function applyEnvironment(): void
     {
-        $environment = getenv();
-        if (is_array($environment)) {
-            foreach ($environment as $key => $value) {
-                if (is_string($key) && is_string($value)) {
-                    $this->values[$key] = $value;
-                }
-            }
+        foreach (getenv() as $key => $value) {
+            $this->values[$key] = $value;
         }
 
         // php-fpm and the built-in server surface some values only in $_SERVER.

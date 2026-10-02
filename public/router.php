@@ -30,11 +30,12 @@ declare(strict_types=1);
  * timeouts, so one slow allocation blocks every other request.
  */
 
-
 $publicRoot = __DIR__;
 $basePath = dirname(__DIR__);
 $path = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
-$path = is_string($path) ? rawurldecode($path) : '/';
+$path = is_string($path)
+    ? rawurldecode($path)
+    : '/';
 $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 
 $candidate = $publicRoot . $path;
@@ -94,13 +95,7 @@ $isApi = $path === '/api' || str_starts_with($path, '/api/');
 $isProbe = $path === '/health' || $path === '/metrics';
 $shell = $publicRoot . '/index.html';
 
-if (
-    ($method === 'GET' || $method === 'HEAD')
-    && !$isApi
-    && !$isProbe
-    && $extension === ''
-    && is_file($shell)
-) {
+if (($method === 'GET' || $method === 'HEAD') && !$isApi && !$isProbe && $extension === '' && is_file($shell)) {
     header('Content-Type: text/html; charset=utf-8');
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');

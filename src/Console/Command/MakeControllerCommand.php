@@ -54,8 +54,6 @@ final class MakeControllerCommand extends Command
      * These are the method names the route table already uses, so a generated
      * handler string and a documented one are the same string and can be
      * diffed against each other.
-     *
-     * @var array<string, string>
      */
     private const RESOURCE_ACTIONS = [
         'index'   => 'List, paginated, within the caller\'s data scope',
@@ -67,8 +65,6 @@ final class MakeControllerCommand extends Command
 
     /**
      * HTTP verb per action.
-     *
-     * @var array<string, string>
      */
     private const RESOURCE_VERBS = [
         'index'   => 'GET',
@@ -85,8 +81,6 @@ final class MakeControllerCommand extends Command
      * forgets the scope leaks another cohort's timetable, a PATCH that replaces
      * the record is data loss, and a DELETE on a table holding personal data is
      * a data-protection incident rather than a cleanup.
-     *
-     * @var array<string, string>
      */
     private const GUIDANCE = [
         'index' => [
@@ -281,38 +275,6 @@ final class MakeControllerCommand extends Command
     // -----------------------------------------------------------------------
 
     /**
-     * `timetable`, `Timetable`, `TimetableController` and `timetable-controller`
-     * all become `TimetableController`.
-     *
-     * The name appears three times — as a file name, as a class name, and as a
-     * *string* in the `handler` column of `config/routes.php` — and the third is
-     * data in an array rather than something the compiler can check. That is
-     * exactly the duplication a generator exists to remove.
-     */
-    private static function className(string $raw): string
-    {
-        $name = trim($raw);
-        $name = (string) preg_replace('/\.php$/i', '', $name);
-        $name = (string) preg_replace('/Controller$/i', '', $name);
-        $name = (string) preg_replace('/[^A-Za-z0-9]+/', ' ', $name);
-        $name = trim($name);
-
-        if ($name === '') {
-            return '';
-        }
-
-        return str_replace(' ', '', ucwords(strtolower($name))) . 'Controller';
-    }
-
-    /**
-     * The collection path segment, `/api/v1/course` for `CourseController`.
-     */
-    private static function basePath(string $class): string
-    {
-        return '/' . strtolower((string) preg_replace('/Controller$/', '', $class));
-    }
-
-    /**
      * A route parameter name, rejected if it is not a plain identifier.
      *
      * It ends up inside a `/{name}` pattern and inside `$this->param($request,
@@ -322,7 +284,9 @@ final class MakeControllerCommand extends Command
      */
     private function paramName(?string $override): string
     {
-        $param = $override === null ? '' : trim($override);
+        $param = $override === null
+            ? ''
+            : trim($override);
 
         if ($param === '') {
             return 'id';
@@ -382,9 +346,11 @@ final class MakeControllerCommand extends Command
             // resource stub always reads index/show/store/update/destroy.
             $ordered = [];
             foreach (array_keys(self::RESOURCE_ACTIONS) as $name) {
-                if (in_array($name, $wanted, true)) {
-                    $ordered[] = $name;
+                if (!in_array($name, $wanted, true)) {
+                    continue;
                 }
+
+                $ordered[] = $name;
             }
 
             return $ordered;
@@ -533,7 +499,9 @@ final class MakeControllerCommand extends Command
                 default          => $base . '/{' . $param . '}',
             };
 
-            $bucket = in_array($action, ['store', 'update', 'destroy'], true) ? 'write' : 'search';
+            $bucket = in_array($action, ['store', 'update', 'destroy'], true)
+                ? 'write'
+                : 'search';
 
             $entries[] = implode("\n", [
                 '    [',
@@ -555,5 +523,37 @@ final class MakeControllerCommand extends Command
         }
 
         return implode("\n", $entries);
+    }
+
+    /**
+     * `timetable`, `Timetable`, `TimetableController` and `timetable-controller`
+     * all become `TimetableController`.
+     *
+     * The name appears three times — as a file name, as a class name, and as a
+     * *string* in the `handler` column of `config/routes.php` — and the third is
+     * data in an array rather than something the compiler can check. That is
+     * exactly the duplication a generator exists to remove.
+     */
+    private static function className(string $raw): string
+    {
+        $name = trim($raw);
+        $name = (string) preg_replace('/\.php$/i', '', $name);
+        $name = (string) preg_replace('/Controller$/i', '', $name);
+        $name = (string) preg_replace('/[^A-Za-z0-9]+/', ' ', $name);
+        $name = trim($name);
+
+        if ($name === '') {
+            return '';
+        }
+
+        return str_replace(' ', '', ucwords(strtolower($name))) . 'Controller';
+    }
+
+    /**
+     * The collection path segment, `/api/v1/course` for `CourseController`.
+     */
+    private static function basePath(string $class): string
+    {
+        return '/' . strtolower((string) preg_replace('/Controller$/', '', $class));
     }
 }

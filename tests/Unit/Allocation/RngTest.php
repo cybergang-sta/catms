@@ -100,7 +100,10 @@ final class RngTest extends TestCase
             $seen[$rng->int(3, 7)] = true;
         }
 
-        self::assertSame([3, 4, 5, 6, 7], array_values(array_unique(array_keys($seen))));
+        $values = array_keys($seen);
+        sort($values);
+
+        self::assertSame([3, 4, 5, 6, 7], $values);
     }
 
     public function testIntWithAnEqualMinAndMaxReturnsThatValue(): void
@@ -226,8 +229,10 @@ final class RngTest extends TestCase
         $b = (new Rng(8))->shuffle($items);
 
         self::assertSame($a, $b);
-        self::assertSame($items, array_values(array_unique($a)));
-        self::assertCount(100, array_unique($a));
+
+        $sorted = $a;
+        sort($sorted);
+        self::assertSame($items, $sorted, 'shuffle() must return exactly the input elements.');
     }
 
     public function testShuffleActuallyReorders(): void

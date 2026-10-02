@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Allocation;
 
+use function count;
+
 /**
  * Scores a feasible assignment. Lower is better; 0 is a perfect placement.
  *
@@ -93,39 +95,6 @@ final class CostFunction
     }
 
     /**
-     * Utilisation is only meaningful relative to comparable rooms — a 200-seat
-     * hall can never reach the utilisation of a 20-seat seminar room. So the
-     * mean is taken per capacity band, not globally.
-     *
-     * @param  array<int, float> $roomUtilisation
-     * @param  array<int, Room>  $rooms
-     * @return array<string, float>
-     */
-    private static function computeBandMeans(array $roomUtilisation, array $rooms): array
-    {
-        $sums   = [];
-        $counts = [];
-
-        foreach ($roomUtilisation as $roomId => $ratio) {
-            $room = $rooms[$roomId] ?? null;
-            if ($room === null) {
-                continue;
-            }
-
-            $band = $room->capacityBand();
-            $sums[$band] = ($sums[$band] ?? 0.0) + $ratio;
-            $counts[$band] = ($counts[$band] ?? 0) + 1;
-        }
-
-        $means = [];
-        foreach ($sums as $band => $sum) {
-            $means[$band] = $sum / $counts[$band];
-        }
-
-        return $means;
-    }
-
-    /**
      * Record that $roomId is now used by $cohortId, so the fragmentation term of
      * a sibling session of the same cohort reflects it.
      */
@@ -162,7 +131,7 @@ final class CostFunction
      */
     public function distinctRoomsFor(int $cohortId): int
     {
-        return \count($this->cohortRoomUse[$cohortId] ?? []);
+        return count($this->cohortRoomUse[$cohortId] ?? []);
     }
 
     /**
@@ -196,14 +165,18 @@ final class CostFunction
 
         // --- churn: a different room than the one already in use? -----------
         $previousRoomId = $this->previousRoomBySession[$session->id()] ?? null;
-        $churn = ($previousRoomId !== null && $previousRoomId !== $room->id()) ? 1.0 : 0.0;
+        $churn = ($previousRoomId !== null && $previousRoomId !== $room->id())
+            ? 1.0
+            : 0.0;
 
         // --- equity: is this an under-used room of comparable size? ----------
         $equity = $this->equityTerm($room);
 
         // --- preference: did we honour the course's requested building? ------
         $preferred = $session->preferredBuilding();
-        $preferenceMiss = ($preferred !== null && $preferred !== $room->building()) ? 1.0 : 0.0;
+        $preferenceMiss = ($preferred !== null && $preferred !== $room->building())
+            ? 1.0
+            : 0.0;
 
         // --- fragmentation: is the class being spread across rooms? ----------
         // 0 for the first room, 0.5 for a second, saturating at 1.0 for a third.
@@ -252,5 +225,38 @@ final class CostFunction
         $projected = min(1.0, $baseline + (1.0 / $this->slotsPerWeek));
 
         return max(0.0, ($mean - $projected) / $mean);
+    }
+
+    /**
+     * Utilisation is only meaningful relative to comparable rooms — a 200-seat
+     * hall can never reach the utilisation of a 20-seat seminar room. So the
+     * mean is taken per capacity band, not globally.
+     *
+     * @param  array<int, float> $roomUtilisation
+     * @param  array<int, Room>  $rooms
+     * @return array<string, float>
+     */
+    private static function computeBandMeans(array $roomUtilisation, array $rooms): array
+    {
+        $sums   = [];
+        $counts = [];
+
+        foreach ($roomUtilisation as $roomId => $ratio) {
+            $room = $rooms[$roomId] ?? null;
+            if ($room === null) {
+                continue;
+            }
+
+            $band = $room->capacityBand();
+            $sums[$band] = ($sums[$band] ?? 0.0) + $ratio;
+            $counts[$band] = ($counts[$band] ?? 0) + 1;
+        }
+
+        $means = [];
+        foreach ($sums as $band => $sum) {
+            $means[$band] = $sum / $counts[$band];
+        }
+
+        return $means;
     }
 }

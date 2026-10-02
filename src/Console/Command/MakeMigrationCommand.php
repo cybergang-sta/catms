@@ -137,25 +137,11 @@ final class MakeMigrationCommand extends Command
         return Kernel::SUCCESS;
     }
 
-    /**
-     * `Add Middle Name To Users` and `add-middle-name` both become
-     * `add_middle_name`. A migration name ends up in `schema_migrations` and in
-     * every log line that mentions it, so it is normalised once here rather than
-     * at every read site.
-     */
-    private static function slug(string $raw): string
-    {
-        $slug = strtolower(trim($raw));
-        $slug = str_replace(['-', ' ', '/', '.', '\\'], '_', $slug);
-        $slug = (string) preg_replace('/[^a-z0-9_]+/', '_', $slug);
-        $slug = (string) preg_replace('/_+/', '_', $slug);
-
-        return trim($slug, '_');
-    }
-
     private function timestamp(?string $override): string
     {
-        $override = $override === null ? '' : trim($override);
+        $override = $override === null
+            ? ''
+            : trim($override);
 
         if ($override !== '') {
             if (preg_match('/^\d{4}_\d{2}_\d{2}_\d{6}$/', $override) === 1) {
@@ -178,49 +164,65 @@ final class MakeMigrationCommand extends Command
             : sprintf('Alters `%s`. Cite the requirement ID that asks for this (NFR-MAINT-06).', $table);
 
         return <<<PHP
-            <?php
+			<?php
 
-            declare(strict_types=1);
+			declare(strict_types=1);
 
-            /**
-             * {$tableComment}
-             *
-             * UP MUST BE IDEMPOTENT
-             * MySQL commits DDL implicitly, so a migration that fails halfway is
-             * retried from the top by a deploy. `CREATE TABLE IF NOT EXISTS` and
-             * `ADD COLUMN IF NOT EXISTS` are what make that safe.
-             *
-             * DOWN MUST REVERSE UP
-             * Ground rule 8: the down path ships in the same release as the up
-             * path, because writing it during an incident is the worst possible
-             * time (docs/DEPLOYMENT.md §8.3).
-             */
+			/**
+			 * {$tableComment}
+			 *
+			 * UP MUST BE IDEMPOTENT
+			 * MySQL commits DDL implicitly, so a migration that fails halfway is
+			 * retried from the top by a deploy. `CREATE TABLE IF NOT EXISTS` and
+			 * `ADD COLUMN IF NOT EXISTS` are what make that safe.
+			 *
+			 * DOWN MUST REVERSE UP
+			 * Ground rule 8: the down path ships in the same release as the up
+			 * path, because writing it during an incident is the worst possible
+			 * time (docs/DEPLOYMENT.md §8.3).
+			 */
 
-            use App\Core\Database;
-            use App\Infrastructure\Persistence\Migration\Migration;
+			use App\Core\Database;
+			use App\Infrastructure\Persistence\Migration\Migration;
 
-            return new class implements Migration {
-                public function name(): string
-                {
-                    return '{$version}';
-                }
+			return new class implements Migration {
+				public function name(): string
+				{
+					return '{$version}';
+				}
 
-                public function up(Database \$database): void
-                {
-                    // Example, replace it:
-                    //   \$database->pdo()->exec(
-                    //       'ALTER TABLE `rooms`
-                    //            ADD COLUMN IF NOT EXISTS `accessible` TINYINT(1) NOT NULL DEFAULT 0'
-                    //   );
-                }
+				public function up(Database \$database): void
+				{
+					// Example, replace it:
+					//   \$database->pdo()->exec(
+					//       'ALTER TABLE `rooms`
+					//            ADD COLUMN IF NOT EXISTS `accessible` TINYINT(1) NOT NULL DEFAULT 0'
+					//   );
+				}
 
-                public function down(Database \$database): void
-                {
-                    // Example, replace it:
-                    //   \$database->pdo()->exec('ALTER TABLE `rooms` DROP COLUMN `accessible`');
-                }
-            };
+				public function down(Database \$database): void
+				{
+					// Example, replace it:
+					//   \$database->pdo()->exec('ALTER TABLE `rooms` DROP COLUMN `accessible`');
+				}
+			};
 
-            PHP;
+			PHP;
+    }
+
+    /**
+     * `Add Middle Name To Users` and `add-middle-name` both become
+     * `add_middle_name`. A migration name ends up in `schema_migrations` and in
+     * every log line that mentions it, so it is normalised once here rather than
+     * at every read site.
+     */
+    private static function slug(string $raw): string
+    {
+        $slug = strtolower(trim($raw));
+        $slug = str_replace(['-', ' ', '/', '.', '\\'], '_', $slug);
+        $slug = (string) preg_replace('/[^a-z0-9_]+/', '_', $slug);
+        $slug = (string) preg_replace('/_+/', '_', $slug);
+
+        return trim($slug, '_');
     }
 }

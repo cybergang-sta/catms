@@ -70,9 +70,11 @@ final class CostBreakdown
 
         $lines = [];
         foreach ($this->weighted as $term => $value) {
-            if ($value > 0.0) {
-                $lines[] = sprintf('%+.2f  %s', $value, $labels[$term] ?? $term);
+            if ($value <= 0.0) {
+                continue;
             }
+
+            $lines[] = sprintf('%+.2f  %s', $value, $labels[$term] ?? $term);
         }
 
         return $lines;

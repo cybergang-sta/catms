@@ -188,7 +188,10 @@ final class WorkerCommand extends Command
         $pass = 0;
         $this->kernel->logger()->info('Worker started.', ['interval' => $interval]);
 
-        while (true) {
+        // `$stopping` is set asynchronously by the signal handler, typically
+        // while the process is inside sleep(), so the loop condition is where
+        // a stop request is observed.
+        while (!$this->stopping) {
             $pass++;
             $result = $this->drainOnce($input, $output, $asJson, true);
 
@@ -205,16 +208,8 @@ final class WorkerCommand extends Command
                 ));
             }
 
-            if ($this->stopping) {
-                break;
-            }
-
-            if ($result['sent'] === 0) {
+            if ($result['sent'] === 0 && !$this->stopping) {
                 sleep($interval);
-            }
-
-            if ($this->stopping) {
-                break;
             }
         }
 
@@ -462,7 +457,7 @@ final class WorkerCommand extends Command
 
         try {
             $delivered = match ($channel) {
-                'in_app' => $this->deliverInApp($database, $id, $row, $payload, $recipient),
+                'in_app' => $this->deliverInApp($database, $id, $payload, $recipient),
                 'email'  => $this->deliverEmail($recipient, $payload),
                 'sms'    => $this->deliverSms($recipient, $payload),
                 default  => null,
@@ -513,18 +508,16 @@ final class WorkerCommand extends Command
      * outbox row is what makes "why was this never shown in my inbox"
      * answerable from one query.
      *
-     * @param array<string, mixed> $row
      * @param array<string, mixed> $payload
      * @param array<string, mixed> $recipient
      */
     private function deliverInApp(
         Database $database,
         int $outboxId,
-        array $row,
         array $payload,
         array $recipient,
     ): bool {
-        return $database->transaction(function (Database $database) use ($outboxId, $row, $payload, $recipient): bool {
+        return $database->transaction(function (Database $database) use ($outboxId, $payload, $recipient): bool {
             $type = (string) ($payload['type'] ?? 'general');
             $title = (string) ($payload['title'] ?? 'Notification');
             $body = (string) ($payload['body'] ?? '');

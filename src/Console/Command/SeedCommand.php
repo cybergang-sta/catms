@@ -64,7 +64,11 @@ final class SeedCommand extends Command
             'first_name'    => 'Ada',
             'last_name'     => 'Mensah',
             'staff_id'      => 'UTAS/ADM/0001',
-            'department'    => null,
+            // The demo administrator belongs to Computer Science, the department
+            // that owns the seeded timetable. A null department is a system
+            // administrator, and allocation and new semesters both refuse that
+            // account until a department is supplied.
+            'department'    => 'CS',
         ],
         [
             'email'         => 'lecturer@utas.edu.gh',
@@ -584,10 +588,6 @@ final class SeedCommand extends Command
     private function attachDemoDepartments(Database $database): void
     {
         foreach (self::DEMO_ACCOUNTS as $account) {
-            if (!isset($account['department'])) {
-                continue;
-            }
-
             $database->execute(
                 'UPDATE `users` u
                  JOIN `departments` d ON d.`code` = :code
@@ -601,6 +601,9 @@ final class SeedCommand extends Command
         }
     }
 
+    /**
+     * @param array<string, int> $roleIds
+     */
     private function seedDemoUsers(
         Database $database,
         array $roleIds,
@@ -625,14 +628,11 @@ final class SeedCommand extends Command
             $password = $forcedPassword
                 ?? ($local ? (string) $account['password'] : $this->randomPassword());
 
-            $departmentId = null;
-            if (isset($account['department'])) {
-                $found = $database->scalar(
-                    'SELECT id FROM `departments` WHERE `code` = :code',
-                    ['code' => (string) $account['department']],
-                );
-                $departmentId = $found === null || $found === false ? null : (int) $found;
-            }
+            $found = $database->scalar(
+                'SELECT id FROM `departments` WHERE `code` = :code',
+                ['code' => $account['department']],
+            );
+            $departmentId = $found === null ? null : (int) $found;
 
             if ($existing !== null) {
                 $database->update('users', [

@@ -82,7 +82,10 @@ final class ValueObjectTest extends TestCase
 
         self::assertTrue($index->roomSlotTaken(1, 1));
         self::assertTrue($index->roomSlotTaken(1, 1, exceptSessionId: 1));
-        self::assertFalse($index->roomSlotTaken(1, 1, exceptSessionId: 99));
+        self::assertTrue($index->roomSlotTaken(1, 1, exceptSessionId: 99));
+
+        $index->unplace(new Assignment(2, 1, 1), $problem);
+        self::assertFalse($index->roomSlotTaken(1, 1, exceptSessionId: 1));
     }
 
     public function testPlacingTheSameSessionTwiceDoesNotDoubleCountTheDayLoad(): void
@@ -272,7 +275,7 @@ final class ValueObjectTest extends TestCase
             ['timeBudgetSeconds' => 0.0],
         ] as $overrides) {
             try {
-                new EngineOptions(clock: $clock, ...$overrides);
+                new EngineOptions(...$overrides, clock: $clock);
                 self::fail('Expected InvalidArgumentException for ' . json_encode($overrides));
             } catch (\InvalidArgumentException) {
                 self::assertTrue(true);

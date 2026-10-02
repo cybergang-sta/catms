@@ -53,8 +53,6 @@ final class TimetableService
      * column. If the read side and the uniqueness constraint disagreed about
      * what "active" means, the timetable could show a class that the engine
      * believes it is free to double-book.
-     *
-     * @var list<string>
      */
     private const PUBLISHED_STATUSES = ['proposed', 'confirmed', 'updated'];
 
@@ -184,7 +182,15 @@ final class TimetableService
         if ($where !== []) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
-        $sql .= ' ORDER BY s.`start_date` DESC, s.`id` DESC';
+
+        // Semester names are only unique per department (every department has a
+        // `2026-A`), so the caller's own department must win a name match.
+        $sql .= ' ORDER BY ';
+        if ($identity->departmentId() !== null) {
+            $sql .= '(s.`department_id` = :own_department) DESC, ';
+            $bindings['own_department'] = $identity->departmentId();
+        }
+        $sql .= 's.`start_date` DESC, s.`id` DESC';
 
         return array_map(
             static fn (array $row): Semester => Semester::fromRow($row),
@@ -201,7 +207,6 @@ final class TimetableService
      * human.
      *
      * @param list<int> $semesterIds
-     *
      * @return array<string, array{type: string, label: string}>
      */
     public function nonTeachingDays(array $semesterIds): array
@@ -319,53 +324,6 @@ final class TimetableService
         ]);
 
         return array_map(static fn (array $row): SessionEntry => self::hydrate($row), $rows);
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private static function hydrate(array $row): SessionEntry
-    {
-        $first = (string) ($row['first_name'] ?? '');
-        $last = (string) ($row['last_name'] ?? '');
-
-        // A deleted lecturer account leaves an allocation pointing at nothing.
-        // The schema's foreign keys prevent that, but a suspended one still has a
-        // name, and a blank cell in a timetable is worse than a generic label.
-        $lecturerName = trim($first . ' ' . $last);
-        if ($lecturerName === '') {
-            $lecturerName = 'Unassigned';
-        }
-
-        return new SessionEntry(
-            (int) $row['id'],
-            (int) $row['cohort_id'],
-            (string) $row['cohort_name'],
-            (int) $row['enrolled_count'] + (int) $row['capacity_slack'],
-            (string) $row['course_code'],
-            (string) $row['course_title'],
-            (int) $row['course_level'],
-            (string) ($row['course_features'] ?? ''),
-            (int) $row['lecturer_id'],
-            $lecturerName,
-            (int) $row['room_id'],
-            (string) $row['room_code'],
-            (string) $row['room_name'],
-            (string) $row['room_building'],
-            $row['room_floor'] === null ? null : (int) $row['room_floor'],
-            (int) $row['room_capacity'],
-            (string) $row['room_type'],
-            (string) $row['status'],
-            (string) $row['source'],
-            (string) $row['source'] === 'override',
-            $row['override_reason'] === null ? null : (string) $row['override_reason'],
-            (int) $row['week_number'],
-            (int) $row['day_of_week'],
-            (string) $row['start_time'],
-            (string) $row['end_time'],
-            (string) $row['slot_label'],
-            (int) $row['time_slot_id'],
-        );
     }
 
     /**
@@ -500,23 +458,23 @@ final class TimetableService
         $visibility = $viewer->apply();
 
         $sql = 'SELECT a.`id`, a.`week_number`, a.`status`, a.`source`, a.`override_reason`,
-                       a.`cohort_id`, a.`course_id`, a.`lecturer_id`, a.`room_id`, a.`time_slot_id`,
-                       co.`name` AS `cohort_name`, co.`enrolled_count`, co.`capacity_slack`,
-                       c.`code` AS `course_code`, c.`title` AS `course_title`, c.`level` AS `course_level`,
-                       u.`first_name`, u.`last_name`,
-                       r.`code` AS `room_code`, r.`name` AS `room_name`, r.`building` AS `room_building`,
-                       r.`floor` AS `room_floor`, r.`capacity` AS `room_capacity`, r.`room_type`,
-                       ts.`label` AS `slot_label`, ts.`day_of_week`, ts.`start_time`, ts.`end_time`
-                FROM `allocations` a
-                INNER JOIN `cohorts` co ON co.`id` = a.`cohort_id`
-                INNER JOIN `courses` c   ON c.`id` = a.`course_id`
-                INNER JOIN `rooms` r     ON r.`id` = a.`room_id`
-                INNER JOIN `time_slots` ts ON ts.`id` = a.`time_slot_id`
-                INNER JOIN `users` u     ON u.`id` = a.`lecturer_id`
-                WHERE a.`semester_id` = :semester_id
-                  AND a.`status` IN (' . implode(', ', $statusPlaceholders) . ')' . $visibility['sql'] . '
-                ORDER BY a.`week_number`, ts.`day_of_week`, ts.`start_time`, r.`code`
-                LIMIT 20000';
+					   a.`cohort_id`, a.`course_id`, a.`lecturer_id`, a.`room_id`, a.`time_slot_id`,
+					   co.`name` AS `cohort_name`, co.`enrolled_count`, co.`capacity_slack`,
+					   c.`code` AS `course_code`, c.`title` AS `course_title`, c.`level` AS `course_level`,
+					   u.`first_name`, u.`last_name`,
+					   r.`code` AS `room_code`, r.`name` AS `room_name`, r.`building` AS `room_building`,
+					   r.`floor` AS `room_floor`, r.`capacity` AS `room_capacity`, r.`room_type`,
+					   ts.`label` AS `slot_label`, ts.`day_of_week`, ts.`start_time`, ts.`end_time`
+				FROM `allocations` a
+				INNER JOIN `cohorts` co ON co.`id` = a.`cohort_id`
+				INNER JOIN `courses` c   ON c.`id` = a.`course_id`
+				INNER JOIN `rooms` r     ON r.`id` = a.`room_id`
+				INNER JOIN `time_slots` ts ON ts.`id` = a.`time_slot_id`
+				INNER JOIN `users` u     ON u.`id` = a.`lecturer_id`
+				WHERE a.`semester_id` = :semester_id
+				  AND a.`status` IN (' . implode(', ', $statusPlaceholders) . ')' . $visibility['sql'] . '
+				ORDER BY a.`week_number`, ts.`day_of_week`, ts.`start_time`, r.`code`
+				LIMIT 20000';
 
         $rows = $this->database->select($sql, $bindings + $visibility['bindings']);
 
@@ -565,7 +523,9 @@ final class TimetableService
     {
         $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date, new DateTimeZone('UTC'));
 
-        return $parsed === false ? 1 : (int) $parsed->format('N');
+        return $parsed === false
+            ? 1
+            : (int) $parsed->format('N');
     }
 
     /**
@@ -579,5 +539,52 @@ final class TimetableService
         }
 
         return $parsed->format('D j M');
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private static function hydrate(array $row): SessionEntry
+    {
+        $first = (string) ($row['first_name'] ?? '');
+        $last = (string) ($row['last_name'] ?? '');
+
+        // A deleted lecturer account leaves an allocation pointing at nothing.
+        // The schema's foreign keys prevent that, but a suspended one still has a
+        // name, and a blank cell in a timetable is worse than a generic label.
+        $lecturerName = trim($first . ' ' . $last);
+        if ($lecturerName === '') {
+            $lecturerName = 'Unassigned';
+        }
+
+        return new SessionEntry(
+            (int) $row['id'],
+            (int) $row['cohort_id'],
+            (string) $row['cohort_name'],
+            (int) $row['enrolled_count'] + (int) $row['capacity_slack'],
+            (string) $row['course_code'],
+            (string) $row['course_title'],
+            (int) $row['course_level'],
+            (string) ($row['course_features'] ?? ''),
+            (int) $row['lecturer_id'],
+            $lecturerName,
+            (int) $row['room_id'],
+            (string) $row['room_code'],
+            (string) $row['room_name'],
+            (string) $row['room_building'],
+            $row['room_floor'] === null ? null : (int) $row['room_floor'],
+            (int) $row['room_capacity'],
+            (string) $row['room_type'],
+            (string) $row['status'],
+            (string) $row['source'],
+            (string) $row['source'] === 'override',
+            $row['override_reason'] === null ? null : (string) $row['override_reason'],
+            (int) $row['week_number'],
+            (int) $row['day_of_week'],
+            (string) $row['start_time'],
+            (string) $row['end_time'],
+            (string) $row['slot_label'],
+            (int) $row['time_slot_id'],
+        );
     }
 }

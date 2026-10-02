@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Allocation;
 
 use App\Domain\Allocation\SchedulingProblem;
+use Tests\Unit\Allocation\Fixture\ProblemBuilder;
 use Tests\Unit\Allocation\Fixture\ProblemFactory;
 
 /**
@@ -43,7 +44,7 @@ final class CapacityTest extends EngineTestCase
 
     public function testACohortLargerThanEveryRoomIsReportedNotForcedIn(): void
     {
-        $builder = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $builder = (new ProblemBuilder())
             ->standardWeek(2)
             ->room(20, shared: true)
             ->room(30, shared: true)
@@ -64,7 +65,7 @@ final class CapacityTest extends EngineTestCase
 
     public function testARoomExactlyAtCapacityIsAccepted(): void
     {
-        $builder = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $builder = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(100, shared: true)
             ->session(1, 1, enrolledCount: 100);
@@ -77,7 +78,7 @@ final class CapacityTest extends EngineTestCase
 
     public function testARoomOneSeatShortIsRejected(): void
     {
-        $builder = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $builder = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(99, shared: true)
             ->session(1, 1, enrolledCount: 100);

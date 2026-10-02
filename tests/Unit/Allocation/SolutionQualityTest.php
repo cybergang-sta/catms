@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Allocation;
 
+use App\Domain\Allocation\Assignment;
+use App\Domain\Allocation\CostFunction;
+use App\Domain\Allocation\CostWeights;
 use App\Domain\Allocation\EngineOptions;
+use App\Domain\Allocation\SchedulingProblem;
 use Tests\Unit\Allocation\Fixture\ProblemBuilder;
+use Tests\Unit\Allocation\Fixture\ProblemFactory;
 
 /**
  * The tests for the quality of a solution, as distinct from its validity.
@@ -41,14 +46,15 @@ final class SolutionQualityTest extends EngineTestCase
     public function testTheWasteTermDrivesSeatUtilisationAboveTheRoomAverage(): void
     {
         // Warm start: a 5-student cohort already sits in a 200-seat room, and a
-        // 150-student cohort sits in a 160-seat one. Utilisation is far better
-        // than the pre-existing arrangement, which the churn term resists — so
-        // this is a genuine trade-off, resolved by the weights.
+        // 150-student cohort sits in a 160-seat one. A 10-seat room would suit
+        // the small cohort far better, which the churn term resists — so this
+        // is a genuine trade-off, resolved by the weights. Phase 0 adopts every
+        // feasible warm-start row, so only the local search can make the move.
         $builder = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(200, shared: true)
             ->room(160, shared: true)
-            ->room(180, shared: true)
+            ->room(10, shared: true)
             ->session(1, 1, enrolledCount: 5)
             ->session(2, 2, enrolledCount: 150);
 
@@ -57,21 +63,21 @@ final class SolutionQualityTest extends EngineTestCase
         $roomIds = $builder->roomIds();
 
         $existing = [
-            new \App\Domain\Allocation\Assignment(1, $roomIds[0], $slotId), // 5 students, 200 seats
-            new \App\Domain\Allocation\Assignment(2, $roomIds[1], $slotId), // 150 students, 160 seats
+            new Assignment(1, $roomIds[0], $slotId), // 5 students, 200 seats
+            new Assignment(2, $roomIds[1], $slotId), // 150 students, 160 seats
         ];
 
-        $utilisationFirst = $this->engine(weights: \App\Domain\Allocation\CostWeights::utilisationFirst())
-            ->solve($problem, $existing, EngineOptions::greedyOnly(1));
+        $utilisationFirst = $this->engine(weights: CostWeights::utilisationFirst())
+            ->solve($problem, $existing, $this->options(maxIterations: 200));
 
-        $stabilityFirst = $this->engine(weights: \App\Domain\Allocation\CostWeights::stabilityFirst())
-            ->solve($problem, $existing, EngineOptions::greedyOnly(1));
+        $stabilityFirst = $this->engine(weights: CostWeights::stabilityFirst())
+            ->solve($problem, $existing, $this->options(maxIterations: 200));
 
         // Both must stay valid whatever the weights.
         $this->assertResultIsSound($utilisationFirst);
         $this->assertResultIsSound($stabilityFirst);
 
-        $before = 5 / 200 + 150 / 160;
+        $before = $this->seatUtilisation($existing, $problem);
 
         $after = $this->seatUtilisation($utilisationFirst->assignments, $problem);
         $afterStable = $this->seatUtilisation($stabilityFirst->assignments, $problem);
@@ -82,7 +88,7 @@ final class SolutionQualityTest extends EngineTestCase
             'Utilisation-first weighting should improve on the warm-start arrangement.',
         );
 
-        self::assertGreaterThanOrEqual(
+        self::assertLessThanOrEqual(
             $after,
             $afterStable,
             'Stability-first weighting should not beat utilisation-first on utilisation alone.',
@@ -100,7 +106,7 @@ final class SolutionQualityTest extends EngineTestCase
 
         $problem = $builder->build();
         $existing = [
-            new \App\Domain\Allocation\Assignment(1, $builder->roomIds()[0], $builder->slotIds()[0]),
+            new Assignment(1, $builder->roomIds()[0], $builder->slotIds()[0]),
         ];
 
         $result = $this->engine()->solve($problem, $existing, EngineOptions::greedyOnly(1));
@@ -180,7 +186,7 @@ final class SolutionQualityTest extends EngineTestCase
 
     public function testTheChurnTermPenalisesADifferentRoomFromThePriorTimetable(): void
     {
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemBuilder())
+        $problem = (new ProblemBuilder())
             ->standardWeek(1)
             ->room(50, shared: true, building: 'A')
             ->room(50, shared: true, building: 'A')
@@ -188,15 +194,15 @@ final class SolutionQualityTest extends EngineTestCase
             ->build();
 
         $slotId = 1;
-        $cost = new \App\Domain\Allocation\CostFunction(
-            \App\Domain\Allocation\CostWeights::stabilityFirst(),
+        $cost = new CostFunction(
+            CostWeights::stabilityFirst(),
         );
 
         $withPrior = $cost->withContext([], [], [1 => 1], []);
         $without = $cost->withContext([], [], [], []);
 
-        $sameRoom = $withPrior->evaluate(new \App\Domain\Allocation\Assignment(1, 1, $slotId), $problem);
-        $otherRoom = $withPrior->evaluate(new \App\Domain\Allocation\Assignment(1, 2, $slotId), $problem);
+        $sameRoom = $withPrior->evaluate(new Assignment(1, 1, $slotId), $problem);
+        $otherRoom = $withPrior->evaluate(new Assignment(1, 2, $slotId), $problem);
 
         self::assertSame(0.0, $sameRoom->raw['churn']);
         self::assertSame(1.0, $otherRoom->raw['churn']);
@@ -204,7 +210,7 @@ final class SolutionQualityTest extends EngineTestCase
 
         // With no prior timetable the term must be inert, or the very first
         // generation would be scored against a timetable that does not exist.
-        $fresh = $without->evaluate(new \App\Domain\Allocation\Assignment(1, 2, $slotId), $problem);
+        $fresh = $without->evaluate(new Assignment(1, 2, $slotId), $problem);
         self::assertSame(0.0, $fresh->raw['churn']);
     }
 
@@ -213,7 +219,7 @@ final class SolutionQualityTest extends EngineTestCase
         // forgetUse() has to remove exactly one reference. If it removed the room
         // outright, a cohort with two sessions in the same room would appear to
         // be spread across two rooms the moment one of them moved.
-        $cost = new \App\Domain\Allocation\CostFunction(\App\Domain\Allocation\CostWeights::balanced());
+        $cost = new CostFunction(CostWeights::balanced());
 
         $cost->noteUse(1, 10, 7);
         $cost->noteUse(1, 11, 7);
@@ -241,17 +247,17 @@ final class SolutionQualityTest extends EngineTestCase
             ->session(1, 1, enrolledCount: 30)
             ->build();
 
-        $cost = (new \App\Domain\Allocation\CostFunction(\App\Domain\Allocation\CostWeights::balanced()))
+        $cost = (new CostFunction(CostWeights::balanced()))
             ->withContext([], [], [], [], 20);
 
-        $breakdown = $cost->evaluate(new \App\Domain\Allocation\Assignment(1, 1, 1), $problem);
+        $breakdown = $cost->evaluate(new Assignment(1, 1, 1), $problem);
 
         self::assertSame(0.0, $breakdown->raw['equity']);
     }
 
     public function testLocalSearchNeverIncreasesTheTotalPenalty(): void
     {
-        $problem = (new \Tests\Unit\Allocation\Fixture\ProblemFactory(4242))
+        $problem = (new ProblemFactory(4242))
             ->random(sessionCount: 20, roomCount: 5, slotCount: 8)
             ->build();
 
@@ -262,14 +268,14 @@ final class SolutionQualityTest extends EngineTestCase
         $this->assertResultIsSound($searched);
 
         self::assertGreaterThanOrEqual(
-            $searched->metrics['assigned_sessions'],
             $greedy->metrics['assigned_sessions'],
+            $searched->metrics['assigned_sessions'],
             'Local search must never place fewer sessions than the greedy construction.',
         );
 
         self::assertLessThanOrEqual(
-            (float) $searched->metrics['total_penalty'],
             (float) $greedy->metrics['total_penalty'] + 1e-9,
+            (float) $searched->metrics['total_penalty'],
             'Local search must not leave a higher total penalty than it started from.',
         );
     }
@@ -277,7 +283,7 @@ final class SolutionQualityTest extends EngineTestCase
     /**
      * @param array<int, \App\Domain\Allocation\Assignment> $assignments
      */
-    private function seatUtilisation(array $assignments, \App\Domain\Allocation\SchedulingProblem $problem): float
+    private function seatUtilisation(array $assignments, SchedulingProblem $problem): float
     {
         $used = 0;
         $provided = 0;
@@ -294,6 +300,8 @@ final class SolutionQualityTest extends EngineTestCase
             $provided += $room->capacity();
         }
 
-        return $provided > 0 ? $used / $provided : 0.0;
+        return $provided > 0
+            ? $used / $provided
+            : 0.0;
     }
 }

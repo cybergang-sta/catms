@@ -20,10 +20,6 @@ namespace App\Domain\Timetable;
  */
 final class SessionEntry
 {
-    /**
-     * @param list<string> $courseFeatures
-     * @param list<string> $roomFeatures
-     */
     public function __construct(
         public readonly int $allocationId,
         public readonly int $cohortId,

@@ -49,13 +49,17 @@ final class RequireAuthentication implements Middleware
     {
         $value = $request->attribute('route.permission');
 
-        return is_string($value) ? $value : null;
+        return is_string($value)
+            ? $value
+            : null;
     }
 
     private function scopeOf(Request $request): string
     {
         $value = $request->attribute('route.scope');
 
-        return is_string($value) ? $value : 'own';
+        return is_string($value)
+            ? $value
+            : 'own';
     }
 }

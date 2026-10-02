@@ -53,8 +53,6 @@ final class Kernel
     /**
      * name => command class. Aliases are listed in the command itself, so this
      * map stays one line per command.
-     *
-     * @var array<string, class-string<Command>>
      */
     private const COMMANDS = [
         'list'             => ListCommand::class,
@@ -115,7 +113,10 @@ final class Kernel
                 return $this->unknown($requested, $output);
             }
 
-            $command->run(new Input([]), $output);
+            // Render help and stop. Calling run() with an empty Input would let
+            // the command body continue and then fail on its own required
+            // arguments, printing usage and an error for one keystroke.
+            $command->help($output);
 
             return self::SUCCESS;
         }
@@ -231,10 +232,12 @@ final class Kernel
             $names = array_merge([$command->name()], $command->aliases());
             foreach ($names as $candidate) {
                 $distance = levenshtein($requested, $candidate);
-                if ($distance < $best) {
-                    $best = $distance;
-                    $suggestion = $candidate;
+                if ($distance >= $best) {
+                    continue;
                 }
+
+                $best = $distance;
+                $suggestion = $candidate;
             }
         }
 

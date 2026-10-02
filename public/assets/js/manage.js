@@ -22,16 +22,16 @@ export function isPublic(path) {
 export function sidebarLinks() {
   const links = [];
   if (can('user:manage')) {
-    links.push({ href: '/manage', id: 'alerts', label: 'Manage' });
+    links.push({ href: '/manage', id: 'manage', label: 'Manage' });
   }
   if (role() === 'lecturer' || role() === 'admin') {
-    links.push({ href: '/availability', id: 'week', label: 'Availability' });
+    links.push({ href: '/availability', id: 'availability', label: 'Availability' });
   }
-  links.push({ href: '/calendar', id: 'term', label: 'Calendar' });
+  links.push({ href: '/calendar', id: 'calendar', label: 'Calendar' });
   if (role() === 'lecturer' || role() === 'admin' || can('report:view')) {
-    links.push({ href: '/reports', id: 'alerts', label: 'Reports' });
+    links.push({ href: '/reports', id: 'reports', label: 'Reports' });
   }
-  links.push({ href: '/find', id: 'rooms', label: 'Find' });
+  links.push({ href: '/find', id: 'find', label: 'Find' });
   return links;
 }
 
@@ -346,7 +346,7 @@ function registerCard() {
       <div class="field"><div class="field-label"><label for="reg-role">Role</label></div>
         <select id="reg-role" name="role" required><option value="student">Student</option><option value="lecturer">Lecturer</option><option value="admin">Administrator</option></select>
       </div>
-      <div class="field"><div class="field-label"><label for="reg-index">Student index</label></div><input id="reg-index" name="student_index"></div>
+      <div class="field"><div class="field-label"><label for="reg-index">Student ID</label></div><input id="reg-index" name="student_index" inputmode="numeric" autocomplete="off" placeholder="20230410057" aria-describedby="reg-index-hint"><p id="reg-index-hint" class="muted">Required for a student. Use the ID as issued, for example 20230410057.</p></div>
       <div class="field"><div class="field-label"><label for="reg-phone">Phone</label></div><input id="reg-phone" name="phone"></div>
       <div class="field"><div class="field-label"><label for="reg-password">Password</label></div><input id="reg-password" name="password" type="password" minlength="12" required></div>
       <div class="field"><div class="field-label"><label for="reg-confirm">Confirm password</label></div><input id="reg-confirm" name="password_confirmation" type="password" required></div>
@@ -425,7 +425,7 @@ async function usersView() {
       <div class="field"><label class="field-label" for="user-first">First name</label><input id="user-first" name="first_name" required></div>
       <div class="field"><label class="field-label" for="user-last">Last name</label><input id="user-last" name="last_name" required></div>
       <div class="field"><label class="field-label" for="user-role">Role</label><select id="user-role" name="role"><option value="student">Student</option><option value="lecturer">Lecturer</option><option value="admin">Administrator</option></select></div>
-      <div class="field"><label class="field-label" for="user-index">Student index</label><input id="user-index" name="student_index"></div>
+      <div class="field"><label class="field-label" for="user-index">Student ID</label><input id="user-index" name="student_index" inputmode="numeric" autocomplete="off" placeholder="20230410057"></div>
       <div class="field"><label class="field-label" for="user-staff">Staff id</label><input id="user-staff" name="staff_id"></div>
       <p class="muted">The new account is active. They choose a password through forgot password.</p>
       <button class="btn btn-primary" type="submit">Create account</button>
@@ -437,7 +437,7 @@ async function coursesView() {
   let body = '';
   try {
     const result = await kit.api('/courses?per_page=50');
-    body = kit.listOf(result.data).map((course) => `<article class="record"><header><span class="code">${kit.esc(course.code)}</span></header><h2>${kit.esc(course.title)}</h2><p>Id ${kit.esc(course.id)} · ${kit.esc((course.features || []).join(', ') || 'No required features')} · ${kit.esc(course.meetings_per_week)} meeting(s) a week</p>${can('course:manage') ? `<button class="btn btn-ghost" type="button" data-drop-course="${kit.esc(course.id)}">Remove course</button>` : ''}</article>`).join('')
+    body = kit.listOf(result.data).map((course) => `<article class="record"><header><span class="code">${kit.esc(course.code)}</span></header><h2>${kit.esc(course.title)}</h2><p>${kit.esc((course.features || []).map((feature) => kit.pretty(feature)).join(' · ') || 'No required features')} · ${kit.esc(course.meetings_per_week)} ${Number(course.meetings_per_week) === 1 ? 'meeting' : 'meetings'} a week</p>${can('course:manage') ? `<button class="btn btn-ghost" type="button" data-drop-course="${kit.esc(course.id)}">Remove course</button>` : ''}</article>`).join('')
       || kit.notice('No courses', 'Add the first course for this department.');
   } catch (error) {
     body = kit.failureNotice(error, 'Courses');
@@ -495,9 +495,14 @@ async function calendarView() {
   } catch (error) {
     body = kit.failureNotice(error, 'Calendar');
   }
+  const needsDepartment = !(kit.session()?.user || {}).department_id;
+  const departmentField = needsDepartment
+    ? `<div class="field"><label class="field-label" for="sem-dept">Department id</label><input id="sem-dept" name="department_id" type="number" min="1" required></div>`
+    : '';
   const form = can('semester:manage') ? `<form id="semester-form" class="stack">
       <h2>New semester</h2>
       <div class="alert" data-error hidden role="alert"></div>
+      ${departmentField}
       <div class="field"><label class="field-label" for="sem-name">Name</label><input id="sem-name" name="name" required maxlength="40"></div>
       <div class="field"><label class="field-label" for="sem-year">Academic year</label><input id="sem-year" name="academic_year" required placeholder="2026/2027"></div>
       <div class="field"><label class="field-label" for="sem-start">Start</label><input id="sem-start" name="start_date" type="date" required></div>
@@ -532,7 +537,7 @@ async function generateView() {
   try {
     const result = await kit.api('/semesters');
     const semesters = Array.isArray(result.data) ? result.data : [];
-    options = semesters.map((semester) => `<option value="${kit.esc(semester.id)}">${kit.esc(semester.name)}</option>`).join('');
+    options = semesters.map((semester) => `<option value="${kit.esc(semester.id)}" data-department="${kit.esc(semester.department_id ?? '')}">${kit.esc(semester.name)}</option>`).join('');
   } catch (error) {
     return page('Allocate', 'Engine', kit.failureNotice(error, 'Semesters'));
   }
@@ -665,6 +670,17 @@ function heatRows(data) {
   }).join('')}</div>`;
 }
 
+export function failureText(reason, fallback = 'That did not save.') {
+  const fields = reason?.details?.fields;
+  if (fields && typeof fields === 'object') {
+    const lines = Object.values(fields).flat().filter(Boolean);
+    if (lines.length) {
+      return lines.join(' ');
+    }
+  }
+  return reason?.message || fallback;
+}
+
 function splitCodes(value) {
   return String(value || '').split(',').map((part) => part.trim()).filter(Boolean);
 }
@@ -679,7 +695,7 @@ async function submitAccount(form, path, success, next) {
     kit.go(next);
   } catch (reason) {
     error.hidden = false;
-    error.textContent = reason.message || 'That did not save.';
+    error.textContent = failureText(reason);
   }
 }
 
@@ -693,7 +709,7 @@ async function saveProfile(form) {
     kit.toast('Profile saved.');
   } catch (reason) {
     error.hidden = false;
-    error.textContent = reason.message || 'That did not save.';
+    error.textContent = failureText(reason);
   }
 }
 
@@ -707,7 +723,7 @@ async function savePassword(form) {
     form.reset();
   } catch (reason) {
     error.hidden = false;
-    error.textContent = reason.message || 'That did not save.';
+    error.textContent = failureText(reason);
   }
 }
 
@@ -730,9 +746,9 @@ async function postForm(form, path, success, next, shape) {
   } catch (reason) {
     if (error) {
       error.hidden = false;
-      error.textContent = reason.message || 'That did not save.';
+      error.textContent = failureText(reason);
     } else {
-      kit.toast(reason.message || 'That did not save.');
+      kit.toast(failureText(reason));
     }
   }
 }
@@ -748,6 +764,11 @@ async function runGenerate(form) {
     apply: data.get('apply') === '1',
     execution: 'sync',
   };
+  const user = kit.session()?.user || {};
+  const departmentId = form.elements.semester_id?.selectedOptions?.[0]?.dataset.department;
+  if (!user.department_id && departmentId) {
+    body.department_id = Number(departmentId);
+  }
   if (days.length) {
     body.scope = { days };
   }
@@ -763,7 +784,7 @@ async function runGenerate(form) {
     kit.toast(result.data?.applied ? 'Timetable published.' : 'Run recorded. It was not published.');
   } catch (reason) {
     error.hidden = false;
-    error.textContent = reason.message || 'The allocation did not run.';
+    error.textContent = failureText(reason, 'The allocation did not run.');
   } finally {
     button.disabled = false;
   }
@@ -790,7 +811,7 @@ async function updatePerson(form) {
     kit.toast('Account updated.');
     kit.go('/users');
   } catch (error) {
-    kit.toast(error.message || 'That account could not be updated.');
+    kit.toast(failureText(error, 'That account could not be updated.'));
   }
 }
 
@@ -811,7 +832,7 @@ async function patchResource(form, collection, success, next, shape) {
   } catch (reason) {
     if (error) {
       error.hidden = false;
-      error.textContent = reason.message || 'That did not save.';
+      error.textContent = failureText(reason);
     }
   }
 }
@@ -823,10 +844,10 @@ async function compareRooms(form) {
     const host = document.getElementById('compare-result');
     const rooms = Array.isArray(result.data) ? result.data : [];
     if (host) {
-      host.innerHTML = rooms.map((room) => `<article class="record"><strong>${kit.esc(room.code)}</strong><p>Capacity ${kit.esc(room.capacity)} · ${kit.esc((room.features || []).join(', ') || 'no features')}</p></article>`).join('');
+      host.innerHTML = rooms.map((room) => `<article class="record"><strong>${kit.esc(room.code)}</strong><p>Capacity ${kit.esc(room.capacity)} · ${kit.esc((room.features || []).map((feature) => kit.pretty(feature)).join(' · ') || 'no features')}</p></article>`).join('');
     }
   } catch (error) {
-    kit.toast(error.message || 'Those rooms could not be compared.');
+    kit.toast(failureText(error, 'Those rooms could not be compared.'));
   }
 }
 
@@ -847,7 +868,7 @@ async function downloadReport(kind) {
     link.click();
     URL.revokeObjectURL(url);
   } catch (error) {
-    kit.toast(error.message || 'The export could not be downloaded.');
+    kit.toast(failureText(error, 'The export could not be downloaded.'));
   }
 }
 
@@ -857,7 +878,7 @@ async function act(path, success, body, method = 'POST') {
     kit.toast(success);
     return true;
   } catch (error) {
-    kit.toast(error.message || 'That change was refused.');
+    kit.toast(failureText(error, 'That change was refused.'));
     return false;
   }
 }

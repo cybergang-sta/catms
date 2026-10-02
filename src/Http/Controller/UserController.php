@@ -34,9 +34,11 @@ final class UserController extends Controller
             'first_name'    => 'required|string|max:80',
             'last_name'     => 'required|string|max:80',
             'phone'         => 'nullable|string|max:30',
-            'student_index' => 'nullable|string|max:40',
+            'student_index' => 'nullable|string|max:40|digits',
             'staff_id'      => 'nullable|string|max:40',
             'department_id' => 'nullable|integer',
+        ], [
+            'student_index' => 'Student ID',
         ]);
 
         return Response::created($this->accounts()->createUser($this->identity($request), $input));
@@ -61,7 +63,9 @@ final class UserController extends Controller
             'phone'         => 'nullable|string|max:30',
             'status'        => 'nullable|in:pending,active,suspended,archived',
             'staff_id'      => 'nullable|string|max:40',
-            'student_index' => 'nullable|string|max:40',
+            'student_index' => 'nullable|string|max:40|digits',
+        ], [
+            'student_index' => 'Student ID',
         ]);
 
         return Response::success($this->accounts()->updateUser(
@@ -113,7 +117,6 @@ final class UserController extends Controller
 
     /**
      * @param array{page: int, per_page: int, offset: int} $page
-     *
      * @return array<string, int>
      */
     private function meta(array $page, int $total): array

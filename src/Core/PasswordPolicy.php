@@ -116,15 +116,9 @@ final class PasswordPolicy
      */
     public function hash(string $password, ?int $cost = null): string
     {
-        $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => $cost ?? $this->cost]);
-        if (!is_string($hash)) {
-            // password_hash only returns false for an invalid algorithm or cost.
-            // Failing loudly is right: silently storing an unhashed password
-            // because of a bad cost value is not a recoverable situation.
-            throw new ValidationException(['password' => ['The password could not be secured.']]);
-        }
-
-        return $hash;
+        // Since PHP 8.0 password_hash() throws ValueError on a bad cost rather
+        // than returning false, so an unhashed password can never be stored.
+        return password_hash($password, PASSWORD_BCRYPT, ['cost' => $cost ?? $this->cost]);
     }
 
     private function isBreached(string $password): bool

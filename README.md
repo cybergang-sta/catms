@@ -274,7 +274,7 @@ verifies one layer, so a failure names the layer instead of the whole system.
 | 1 | `composer install` | Autoloader and dev tooling present. `Class "App\…" not found` means a stale autoloader: `composer dump-autoload -o` |
 | 2 | `php -r "echo bin2hex(random_bytes(32));"` | `APP_KEY` set in `.env`, ≥ 32 characters |
 | 3 | `php bin/console migrate --status` | Ledger exists, nothing pending |
-| 4 | `php bin/console seed` | 3 departments, 16 rooms, 17 time slots, 6 courses, 6 cohorts, 25 permissions × 3 roles, 3 demo users |
+| 4 | `php bin/console seed` | 3 departments, 22 rooms, 17 time slots, 11 courses, 11 cohorts, 25 permissions × 3 roles, 3 demo users |
 | 5 | `php bin/console routes` | Route table loads. Controllers not yet written list as `501`, which is expected, not an error — `--missing` shows only those, and is the review tool for what is left to build |
 | 6 | `php bin/console smoke` | All six groups green: `config`, `database`, `schema`, `data`, `http`, `engine`. The `engine` group is a real solve, not a stub |
 | 7 | `php bin/console verify-integrity` | Schema invariants, the five `db/schema.sql` footer queries, the `audit_log` grant, the migration ledger |

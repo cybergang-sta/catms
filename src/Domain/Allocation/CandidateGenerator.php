@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Allocation;
 
+use function count;
+
 /**
  * Produces the feasible (slot, room) pairs for one session.
  *
@@ -65,11 +67,7 @@ final class CandidateGenerator
 
             // HC-8, second half: the daily load ceiling. Depends on the lecturer
             // and the day, not on the room, so it belongs in the slot loop.
-            if ($occupancy->lecturerDayLoad(
-                $session->lecturerId(),
-                $slot->dayOfWeek(),
-                $sessionId,
-            ) >= $this->checker->maxLecturerSessionsPerDay()) {
+            if ($occupancy->lecturerDayLoad($session->lecturerId(), $slot->dayOfWeek(), $sessionId,) >= $this->checker->maxLecturerSessionsPerDay()) {
                 continue;
             }
 
@@ -119,7 +117,7 @@ final class CandidateGenerator
         SchedulingProblem $problem,
         OccupancyIndex $occupancy,
     ): int {
-        return \count($this->for($sessionId, $problem, $occupancy));
+        return count($this->for($sessionId, $problem, $occupancy));
     }
 
     /**

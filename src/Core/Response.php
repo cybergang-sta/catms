@@ -22,8 +22,8 @@ final class Response
     private array $headers = [];
 
     /**
-     * @param mixed                $data
      * @param array<string, mixed> $meta
+     * @param array<string, mixed> $errorDetails
      */
     private function __construct(
         private readonly int $status,
@@ -38,7 +38,6 @@ final class Response
     }
 
     /**
-     * @param mixed                $data
      * @param array<string, mixed> $meta
      */
     public static function success(mixed $data = null, array $meta = [], int $status = 200): self
@@ -49,7 +48,6 @@ final class Response
     /**
      * 201, for a resource that was created.
      *
-     * @param mixed                $data
      * @param array<string, mixed> $meta
      */
     public static function created(mixed $data, array $meta = []): self
@@ -218,7 +216,9 @@ final class Response
     {
         $decoded = json_decode($this->body(), true);
 
-        return is_array($decoded) ? $decoded : [];
+        return is_array($decoded)
+            ? $decoded
+            : [];
     }
 
     /**
@@ -259,6 +259,8 @@ final class Response
     {
         $clean = preg_replace('/[^A-Za-z0-9._-]/', '_', $filename) ?? 'export.csv';
 
-        return $clean === '' ? 'export.csv' : $clean;
+        return $clean === ''
+            ? 'export.csv'
+            : $clean;
     }
 }

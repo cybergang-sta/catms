@@ -107,6 +107,12 @@ INSERT INTO `rooms` (`department_id`, `code`, `name`, `building`, `floor`, `capa
   (NULL, 'LT-B14', 'Lecture Theatre B14',    'Block B',     2, 120, 'lecture',   'available',     1, NULL),
   (NULL, 'LT-C02', 'Lecture Theatre C02',    'Block C',     1,  90, 'lecture',   'available',     1, NULL),
   (NULL, 'LT-C04', 'Lecture Theatre C04',    'Block C',     1,  90, 'lecture',   'available',     1, NULL),
+  (NULL, 'LT-A02', 'Lecture Theatre A02',    'Block A',     1, 150, 'lecture',   'available',     1, NULL),
+  (NULL, 'LT-A04', 'Lecture Theatre A04',    'Block A',     1, 100, 'lecture',   'available',     1, NULL),
+  (NULL, 'LT-B18', 'Lecture Theatre B18',    'Block B',     3,  80, 'lecture',   'available',     1, NULL),
+  (NULL, 'LT-B20', 'Lecture Theatre B20',    'Block B',     3,  80, 'lecture',   'available',     1, NULL),
+  (NULL, 'LT-C06', 'Lecture Theatre C06',    'Block C',     2,  70, 'lecture',   'available',     1, NULL),
+  (NULL, 'LT-C08', 'Lecture Theatre C08',    'Block C',     2,  60, 'lecture',   'available',     1, NULL),
   (NULL, 'SM-D01', 'Seminar Room D01',       'Block D',     1,  40, 'seminar',   'available',     1, NULL),
   (NULL, 'SM-D02', 'Seminar Room D02',       'Block D',     1,  40, 'seminar',   'available',     1, NULL),
   (NULL, 'SM-D03', 'Seminar Room D03',       'Block D',     2,  30, 'seminar',   'available',     1, NULL),
@@ -140,20 +146,20 @@ INSERT INTO `room_feature_map` (`room_id`, `feature_id`)
 SELECT r.`id`, f.`id`
   FROM `rooms` r
   JOIN `room_features` f
-WHERE (r.`code` IN ('GH-A1', 'LT-B12', 'LT-B14', 'LT-C02', 'LT-C04', 'VC-G01', 'ST-F01', 'LB-E01', 'LB-E02', 'LB-E03')
+WHERE (r.`code` IN ('GH-A1', 'LT-A02', 'LT-A04', 'LT-B12', 'LT-B14', 'LT-B18', 'LT-B20', 'LT-C02', 'LT-C04', 'LT-C06', 'LT-C08', 'VC-G01', 'ST-F01', 'LB-E01', 'LB-E02', 'LB-E03')
        AND f.`code` = 'projector')
    OR (r.`code` IN ('LT-B12', 'LT-C02', 'SM-D01', 'ST-F01', 'VC-G01')
        AND f.`code` = 'video_conf')
-   OR (r.`code` IN ('GH-A1', 'LT-B12', 'LT-B14', 'LT-C02', 'LT-C04',
+   OR (r.`code` IN ('GH-A1', 'LT-A02', 'LT-A04', 'LT-B12', 'LT-B14', 'LT-B18', 'LT-B20', 'LT-C02', 'LT-C04', 'LT-C06', 'LT-C08',
                     'SM-D01', 'SM-D02', 'SM-D03', 'ST-F01', 'VC-G01')
        AND f.`code` = 'whiteboard')
    OR (r.`code` IN ('LB-E01', 'LB-E02', 'LB-E03')
        AND f.`code` IN ('lab_bench', 'whiteboard'))
    OR (r.`code` IN ('LB-E01', 'LB-E02')
        AND f.`code` = 'ac')
-   OR (r.`code` IN ('GH-A1', 'LT-B12', 'ST-F01')
+   OR (r.`code` IN ('GH-A1', 'LT-A02', 'LT-B12', 'LT-B18', 'ST-F01')
        AND f.`code` = 'tiered_seating')
-   OR (r.`code` IN ('SM-D01', 'SM-D02', 'LT-C02', 'VC-G01')
+   OR (r.`code` IN ('SM-D01', 'SM-D02', 'LT-A04', 'LT-C02', 'LT-C06', 'VC-G01')
        AND f.`code` = 'accessible')
 ON DUPLICATE KEY UPDATE `feature_id` = VALUES(`feature_id`);
 
@@ -281,6 +287,20 @@ SELECT d.`id`, s.`name`, s.`academic_year`, s.`start_date`, s.`end_date`,
            '2027-02-08', '2027-05-21',
            '2027-06-07', '2027-06-25',
            15, 'planning'
+    UNION ALL
+    SELECT 'IT', '2026-A', '2026/2027',
+           '2026-09-01', '2027-01-30',
+           '2026-08-10', '2026-08-28',
+           '2026-09-07', '2026-12-18',
+           '2027-01-04', '2027-01-23',
+           15, 'active'
+    UNION ALL
+    SELECT 'IT', '2027-A', '2027/2028',
+           '2027-02-01', '2027-06-30',
+           '2027-01-11', '2027-01-29',
+           '2027-02-08', '2027-05-21',
+           '2027-06-07', '2027-06-25',
+           15, 'planning'
   ) s ON s.`code` = d.`code`
 ON DUPLICATE KEY UPDATE
   `academic_year`      = VALUES(`academic_year`),
@@ -356,6 +376,26 @@ SELECT d.`id`, c.`code`, c.`title`, c.`description`, c.`credit_hours`, c.`meetin
     SELECT 'IT', 'IT305', 'Web Systems Development',
            'HTTP, client-side scripting, and server-side application development',
            3.0, 2, 180, 300, 'Block E'
+    UNION ALL
+    SELECT 'CS', 'CS102', 'Discrete Mathematics',
+           'Sets, logic, relations, graphs and introductory proofs',
+           3.0, 2, 120, 100, 'Block B'
+    UNION ALL
+    SELECT 'CS', 'CS202', 'Computer Networks',
+           'Layered network models, addressing, routing and transport',
+           3.0, 2, 120, 200, 'Block C'
+    UNION ALL
+    SELECT 'CS', 'CS302', 'Software Engineering',
+           'Requirements, design, testing and delivery of a software project',
+           3.0, 1, 120, 300, 'Block B'
+    UNION ALL
+    SELECT 'IT', 'IT205', 'Systems Analysis and Design',
+           'Process modelling, requirements and the systems development life cycle',
+           3.0, 2, 120, 200, 'Block B'
+    UNION ALL
+    SELECT 'IT', 'IT405', 'Information Security',
+           'Threats, controls, cryptography and security management',
+           3.0, 1, 120, 400, 'Block C'
   ) c ON c.`dept` = d.`code`
 ON DUPLICATE KEY UPDATE
   `title`              = VALUES(`title`),
@@ -379,7 +419,7 @@ INSERT INTO `course_feature_requirements` (`course_id`, `feature_id`, `mandatory
 SELECT c.`id`, f.`id`, 1
   FROM `courses` c
   JOIN `room_features` f
- WHERE (c.`code` IN ('CS101', 'CS201', 'CS401') AND f.`code` = 'projector')
+ WHERE (c.`code` IN ('CS101', 'CS102', 'CS201', 'CS202', 'CS302', 'CS401', 'IT105', 'IT205', 'IT405') AND f.`code` = 'projector')
     OR (c.`code` = 'CS301' AND f.`code` IN ('projector', 'lab_bench'))
     OR (c.`code` = 'IT305' AND f.`code` IN ('projector', 'lab_bench'))
 ON DUPLICATE KEY UPDATE `mandatory` = VALUES(`mandatory`);
@@ -399,8 +439,13 @@ ON DUPLICATE KEY UPDATE `mandatory` = VALUES(`mandatory`);
 --      CS201-A   93  GH-A1, LT-B12, LT-B14 all have a projector
 --      CS301-A   55  requires projector AND lab_bench: LB-E01 or LB-E02
 --      CS401-A   44  any projector room of 44 seats or more
---      IT105-A  103  GH-A1, LT-B12, LT-B14
+--      IT105-A  103  GH-A1, LT-A02, LT-B12, LT-B14
 --      IT305-A   50  requires projector AND lab_bench: LB-E01 or LB-E02
+--      CS102-A   60  any projector lecture room of 60 seats or more
+--      CS202-A   70  LT-A02, LT-A04, LT-B12, LT-B14, LT-B18, LT-B20, LT-C02, LT-C04, LT-C06
+--      CS302-A   40  any projector room of 40 seats or more
+--      IT205-A   52  any projector lecture room of 52 seats or more
+--      IT405-A   35  any projector room of 35 seats or more
 --
 --    CS301-A is the interesting one: a headcount above 58 would leave it with
 --    no legal room at all, because LB-E03 is the smallest laboratory. That is
@@ -429,6 +474,11 @@ SELECT d.`id`, c.`id`, s.`id`, CONCAT(c.`code`, '-', g.`group`), g.`enrolled`, g
     UNION ALL SELECT 'CS', 'CS401', 'A',  40,  4
     UNION ALL SELECT 'IT', 'IT105', 'A',  95,  8
     UNION ALL SELECT 'IT', 'IT305', 'A',  45,  5
+    UNION ALL SELECT 'CS', 'CS102', 'A',  55,  5
+    UNION ALL SELECT 'CS', 'CS202', 'A',  64,  6
+    UNION ALL SELECT 'CS', 'CS302', 'A',  36,  4
+    UNION ALL SELECT 'IT', 'IT205', 'A',  48,  4
+    UNION ALL SELECT 'IT', 'IT405', 'A',  32,  3
   ) g ON g.`course` = c.`code` AND g.`dept` = d.`code`
 ON DUPLICATE KEY UPDATE
   `enrolled_count` = VALUES(`enrolled_count`),
@@ -464,7 +514,7 @@ INSERT INTO `lecturer_course_assignments` (`lecturer_id`, `course_id`, `cohort_i
 SELECT u.`id`, c.`id`, NULL, 1
   FROM `courses` c
   JOIN `users` u ON u.`email` = 'lecturer@utas.edu.gh'
- WHERE c.`code` IN ('CS101', 'CS201', 'CS301', 'CS401', 'IT105', 'IT305')
+ WHERE c.`code` IN ('CS101', 'CS102', 'CS201', 'CS202', 'CS301', 'CS302', 'CS401', 'IT105', 'IT205', 'IT305', 'IT405')
    AND NOT EXISTS (
          SELECT 1
            FROM `lecturer_course_assignments` lca
@@ -474,7 +524,27 @@ SELECT u.`id`, c.`id`, NULL, 1
    );
 
 -- ---------------------------------------------------------------------------
--- 11. What a fresh instance can now do
+-- 11. The demo student belongs to a cohort
+--
+--    A student account with no enrolment sees an empty timetable. The headcount
+--    on the cohort stays the published figure; this row is the one real student
+--    the demo account represents, looked up by e-mail so the id can differ
+--    between machines. If the demo accounts were not created, the join matches
+--    nothing and nothing is inserted.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO `enrollments` (`cohort_id`, `student_id`, `status`)
+SELECT c.`id`, u.`id`, 'enrolled'
+  FROM `users` u
+  JOIN `cohorts` c ON c.`name` = 'CS101-A'
+  JOIN `semesters` s ON s.`id` = c.`semester_id` AND s.`name` = '2026-A'
+  JOIN `departments` d ON d.`id` = c.`department_id` AND d.`code` = 'CS'
+ WHERE u.`email` = 'student@utas.edu.gh'
+   AND u.`student_index` REGEXP '^[0-9]+$'
+ON DUPLICATE KEY UPDATE `status` = 'enrolled';
+
+-- ---------------------------------------------------------------------------
+-- 12. What a fresh instance can now do
 --
 --    php bin/console verify-integrity          # schema, privileges, migrations
 --    php bin/console generate --semester=2026-A --department=CS --dry-run
@@ -483,14 +553,14 @@ SELECT u.`id`, c.`id`, NULL, 1
 --    php bin/console smoke
 --
 --    WHAT THE DATA LOOKS LIKE
---      3 departments · 6 courses · 6 cohorts · 10 sittings
+--      3 departments · 11 courses · 11 cohorts
 --      17 time slots, 16 of them active
---      16 rooms, 13 of them both available and bookable
+--      22 rooms, 19 of them both available and bookable, 10 of them lecture theatres
 --      3 room features required by 5 courses
 --      3 non-teaching dates in the 2026-A teaching window
 --
 --    WHAT `--department=CS` SHOULD REPORT
---      4 cohorts, 6 sittings, accuracy 1.0000 against a 0.90 gate,
+--      7 cohorts, 11 sittings, accuracy 1.0000 against a 0.90 gate,
 --      no HC-1..HC-10 violations, no unallocated sessions.
 --
 --    WHAT IT WILL ALSO REPORT, AND WHY

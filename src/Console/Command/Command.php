@@ -23,10 +23,6 @@ use App\Console\Output;
  */
 abstract class Command
 {
-    public function __construct(protected readonly Kernel $kernel)
-    {
-    }
-
     /** The name typed on the command line, e.g. `migrate`. */
     abstract public function name(): string;
 
@@ -34,6 +30,10 @@ abstract class Command
     abstract public function description(): string;
 
     abstract public function run(Input $input, Output $output): int;
+
+    public function __construct(protected readonly Kernel $kernel)
+    {
+    }
 
     /**
      * Additional names for the same command. The deployment runbooks use
@@ -70,7 +70,11 @@ abstract class Command
         return [];
     }
 
-    /** Extra notes printed after the options. */
+    /**
+     * Extra notes printed after the options.
+     *
+     * @return list<string>
+     */
     public function notes(): array
     {
         return [];
@@ -84,6 +88,21 @@ abstract class Command
     public function isReadOnly(): bool
     {
         return true;
+    }
+
+    /**
+     * Render `--help` and stop. The Kernel calls this instead of `run()`, so
+     * asking for help never executes the command body — otherwise a command
+     * with required arguments prints its usage and *then* fails on the missing
+     * arguments, which reads as two errors rather than one.
+     *
+     * @return int Always `Kernel::SUCCESS`; a usage error is not an error here.
+     */
+    public function help(Output $output): int
+    {
+        $this->printHelp($output);
+
+        return Kernel::SUCCESS;
     }
 
     /** A usage error: bad or missing arguments. Exit code 2. */
@@ -118,11 +137,13 @@ abstract class Command
         }
 
         $notes = $this->notes();
-        if ($notes !== []) {
-            $output->line();
-            foreach ($notes as $note) {
-                $output->line('  ' . $note);
-            }
+        if ($notes === []) {
+            return;
+        }
+
+        $output->line();
+        foreach ($notes as $note) {
+            $output->line('  ' . $note);
         }
     }
 }

@@ -51,6 +51,83 @@ final class ValidatorTest extends TestCase
         }
     }
 
+    public function testANumericStudentIdIsLimitedByItsLength(): void
+    {
+        $clean = $this->validator->validate([
+            'student_index' => '20230410057',
+        ], [
+            'student_index' => 'required|string|max:40',
+        ], [
+            'student_index' => 'Student ID',
+        ]);
+
+        self::assertSame('20230410057', $clean['student_index']);
+    }
+
+    public function testAnIntegerMaximumStillComparesTheNumber(): void
+    {
+        $this->expectException(ValidationException::class);
+        $this->validator->validate([
+            'meetings' => '8',
+        ], [
+            'meetings' => 'required|integer|max:7',
+        ]);
+    }
+
+    public function testABlankOptionalIntegerIsStoredAsNull(): void
+    {
+        $clean = $this->validator->validate([
+            'lecturer_id' => '',
+            'phone'       => '   ',
+        ], [
+            'lecturer_id' => 'nullable|integer',
+            'phone'       => 'nullable|string|max:30',
+        ]);
+
+        self::assertNull($clean['lecturer_id']);
+        self::assertNull($clean['phone']);
+    }
+
+    public function testABooleanAcceptsTheWordsFormsSubmit(): void
+    {
+        $clean = $this->validator->validate([
+            'apply' => 'on',
+            'force' => 'false',
+        ], [
+            'apply' => 'nullable|boolean',
+            'force' => 'nullable|boolean',
+        ]);
+
+        self::assertTrue($clean['apply']);
+        self::assertFalse($clean['force']);
+    }
+
+    public function testANumericIdentifierMustBeSentAsText(): void
+    {
+        try {
+            $this->validator->validate([
+                'student_index' => 20230410057,
+            ], [
+                'student_index' => 'required|string|max:40|digits',
+            ]);
+            self::fail('A JSON number is not a student ID.');
+        } catch (ValidationException $exception) {
+            $message = $exception->details()['fields']['student_index'][0];
+            self::assertStringContainsString('Student ID', $message);
+            self::assertStringContainsString('sent as text', $message);
+        }
+    }
+
+    public function testAStudentIdMustBeDigits(): void
+    {
+        $this->expectException(ValidationException::class);
+        $this->validator->validate([
+            'student_index' => 'IDX2023',
+        ], [
+            'student_index' => 'required|string|max:40|digits',
+        ]);
+    }
+
     public function testAnUnknownFieldIsRejected(): void
     {
         $this->expectException(ValidationException::class);

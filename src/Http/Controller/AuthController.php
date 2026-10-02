@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controller;
 
 use App\Core\Authenticator;
+use App\Core\Exception\RateLimitException;
 use App\Core\Exception\UnauthorizedException;
 use App\Core\Exception\ValidationException;
 use App\Core\RateLimiter;
@@ -202,7 +203,9 @@ final class AuthController extends Controller
             'first_name'            => 'required|string|max:80',
             'last_name'             => 'required|string|max:80',
             'phone'                 => 'nullable|string|max:30',
-            'student_index'         => 'nullable|string|max:40',
+            'student_index'         => 'nullable|string|max:40|digits',
+        ], [
+            'student_index' => 'Student ID',
         ]);
         if ($input['password'] !== $input['password_confirmation']) {
             throw ValidationException::field('password_confirmation', 'The password confirmation does not match.');

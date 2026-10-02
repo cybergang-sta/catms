@@ -58,7 +58,7 @@ final class AccountService
 
         if ($role === 'student' && trim((string) ($input['student_index'] ?? '')) === '') {
             throw new ValidationException([
-                'student_index' => ['A student index is required for a student account.'],
+                'student_index' => ['A student ID is required for a student account.'],
             ]);
         }
 
@@ -251,9 +251,14 @@ final class AccountService
 
         $q = trim((string) ($query['q'] ?? ''));
         if ($q !== '') {
-            $where .= ' AND (u.email LIKE :q OR u.first_name LIKE :q OR u.last_name LIKE :q
-                         OR u.student_index LIKE :q OR u.staff_id LIKE :q)';
-            $bindings['q'] = '%' . $q . '%';
+            $where .= ' AND (u.email LIKE :q_email OR u.first_name LIKE :q_first OR u.last_name LIKE :q_last
+                         OR u.student_index LIKE :q_index OR u.staff_id LIKE :q_staff)';
+            $like = '%' . $q . '%';
+            $bindings['q_email'] = $like;
+            $bindings['q_first'] = $like;
+            $bindings['q_last'] = $like;
+            $bindings['q_index'] = $like;
+            $bindings['q_staff'] = $like;
         }
         if (isset($query['role']) && is_string($query['role']) && $query['role'] !== '') {
             $where .= ' AND r.name = :role';
@@ -290,6 +295,11 @@ final class AccountService
     {
         $email = strtolower(trim((string) $input['email']));
         $role = (string) $input['role'];
+        if ($role === 'student' && trim((string) ($input['student_index'] ?? '')) === '') {
+            throw new ValidationException([
+                'student_index' => ['A student ID is required for a student account.'],
+            ]);
+        }
         if ($this->users->existsWithEmail($email)) {
             throw new ConflictException('An account with those details already exists.');
         }
@@ -355,10 +365,10 @@ final class AccountService
         if (isset($input['status'])) {
             $changes['status'] = (string) $input['status'];
         }
-        if (isset($input['staff_id'])) {
+        if (array_key_exists('staff_id', $input)) {
             $changes['staff_id'] = $this->blankToNull($input['staff_id']);
         }
-        if (isset($input['student_index'])) {
+        if (array_key_exists('student_index', $input)) {
             $changes['student_index'] = $this->blankToNull($input['student_index']);
         }
         if ($changes !== []) {

@@ -722,7 +722,7 @@ final class GenerateTimetableCommand extends Command
         SchedulingResult $result,
         float $gate,
         string $profileName,
-    ): ?AllocationWriteResult {
+    ): AllocationWriteResult {
         $advisory = $input->boolOption('advisory');
         $accuracy = (float) ($result->metrics['accuracy'] ?? 0.0);
 

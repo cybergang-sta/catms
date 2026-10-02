@@ -280,9 +280,7 @@ final class TimetableController extends Controller
     private function assertDate(string $date): string
     {
         if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) !== 1) {
-            throw new ValidationException('date must look like YYYY-MM-DD.', [
-                'date' => ['Expected a date in YYYY-MM-DD format.'],
-            ]);
+            throw ValidationException::field('date', 'Use a date in YYYY-MM-DD form.');
         }
 
         $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date, new DateTimeZone('UTC'));
@@ -290,9 +288,7 @@ final class TimetableController extends Controller
             // Catches 2026-02-30 and friends, which createFromFormat accepts by
             // rolling over. A rolled-over date would silently return the wrong
             // week, which is worse than a validation error.
-            throw new ValidationException('date is not a real calendar date.', [
-                'date' => [sprintf('"%s" does not exist.', $date)],
-            ]);
+            throw ValidationException::field('date', 'That date does not exist.');
         }
 
         return $date;
@@ -304,14 +300,15 @@ final class TimetableController extends Controller
     private function assertWithinSemester(Semester $semester, string $date): void
     {
         if ($date < $semester->startDate || $date > $semester->endDate) {
-            throw new ValidationException('date is outside the semester.', [
-                'date' => [sprintf(
-                    'Semester %s runs %s to %s.',
+            throw ValidationException::field(
+                'date',
+                sprintf(
+                    'That date is outside semester %s (%s to %s).',
                     $semester->name,
                     $semester->startDate,
                     $semester->endDate,
-                )],
-            ]);
+                ),
+            );
         }
     }
 

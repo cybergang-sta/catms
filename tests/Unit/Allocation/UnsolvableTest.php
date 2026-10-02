@@ -23,9 +23,9 @@ final class UnsolvableTest extends EngineTestCase
 {
     public function testAnOverSubscribedDepartmentReportsEverySessionUnallocated(): void
     {
-        // Five cohorts, two cohorts, one room, one slot. Three cannot be placed.
+        // Three cohorts, one room, one slot. Two cannot be placed.
         $builder = (new ProblemBuilder())
-            ->standardWeek(1)
+            ->slot(1, '08:00', '09:00')
             ->room(50, shared: true)
             ->session(1, 1, enrolledCount: 30)
             ->session(2, 2, enrolledCount: 30)
@@ -37,7 +37,7 @@ final class UnsolvableTest extends EngineTestCase
 
         self::assertCount(1, $result->assignments);
         self::assertCount(2, $result->unallocated);
-        self::assertSame(0.0, (float) $result->metrics['accuracy'] * 3 - 2, 'accuracy should be 1/3');
+        self::assertEqualsWithDelta(1 / 3, (float) $result->metrics['accuracy'], 1e-4, 'accuracy should be 1/3');
     }
 
     public function testACompletelyImpossibleProblemAllocatesNothingAndViolatesNothing(): void
@@ -81,13 +81,15 @@ final class UnsolvableTest extends EngineTestCase
 
     public function testTheSummaryNamesTheMostCommonBlockingConstraint(): void
     {
-        // One room that fits, but only one slot, already taken by another
-        // cohort. Every remaining combination is eliminated by HC-3.
+        // Two rooms but only one slot, and two sittings of the same cohort.
+        // The second sitting is blocked by HC-3 in both rooms and by HC-1 in
+        // only the room the first one took, so HC-3 is the most common cause.
         $builder = (new ProblemBuilder())
-            ->standardWeek(1)
+            ->slot(1, '08:00', '09:00')
+            ->room(50, shared: true)
             ->room(50, shared: true)
             ->session(1, 1, enrolledCount: 30)
-            ->session(2, 2, enrolledCount: 30);
+            ->session(1, 2, enrolledCount: 30);
 
         $result = $this->solve($builder, EngineOptions::greedyOnly(1));
 
@@ -127,7 +129,7 @@ final class UnsolvableTest extends EngineTestCase
         $this->expectException(InfeasibleProblemException::class);
         $this->expectExceptionMessage('no sessions');
 
-        $this->solve($builder, EngineOptions::greedyOnly(1));
+        $this->solve($builder, $this->strictOptions());
     }
 
     public function testNonStrictModeReportsAnEmptyProblemRatherThanThrowing(): void

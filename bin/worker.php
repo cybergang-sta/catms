@@ -3,6 +3,8 @@
 
 declare(strict_types=1);
 
+use App\Console\Launcher;
+
 /**
  * `php bin/worker.php <subcommand>` — the outbox and the nightly jobs.
  *
@@ -25,14 +27,13 @@ declare(strict_types=1);
  * broken SMTP server does not lose anyone's room-change notification.
  */
 
-
-if (\PHP_SAPI !== 'cli') {
+if (PHP_SAPI !== 'cli') {
     http_response_code(403);
     echo "This script must be run from the command line.\n";
     exit(1);
 }
 
-$root = \dirname(__DIR__);
+$root = dirname(__DIR__);
 
 if (! is_file($root . '/vendor/autoload.php')) {
     fwrite(STDERR, "Dependencies are not installed. Run: composer install\n");
@@ -41,4 +42,4 @@ if (! is_file($root . '/vendor/autoload.php')) {
 
 require $root . '/vendor/autoload.php';
 
-exit(App\Console\Launcher::main($argv, 'worker'));
+exit(Launcher::main($argv, 'worker'));

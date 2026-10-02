@@ -80,11 +80,7 @@ final class ConstraintChecker
         }
 
         // HC-2 — the lecturer must be free in this slot.
-        if ($occupancy->lecturerSlotTaken(
-            $session->lecturerId(),
-            $slot->id(),
-            $candidate->sessionId(),
-        )) {
+        if ($occupancy->lecturerSlotTaken($session->lecturerId(), $slot->id(), $candidate->sessionId(),)) {
             $violations[] = Violation::of(
                 self::HC_LECTURER_FREE,
                 sprintf(
@@ -97,11 +93,7 @@ final class ConstraintChecker
         }
 
         // HC-3 — the cohort must be free in this slot.
-        if ($occupancy->cohortSlotTaken(
-            $session->cohortId(),
-            $slot->id(),
-            $candidate->sessionId(),
-        )) {
+        if ($occupancy->cohortSlotTaken($session->cohortId(), $slot->id(), $candidate->sessionId(),)) {
             $violations[] = Violation::of(
                 self::HC_COHORT_FREE,
                 sprintf('Cohort #%d already has a class in %s.', $session->cohortId(), $slot->label()),
@@ -162,11 +154,7 @@ final class ConstraintChecker
             );
         }
 
-        if ($occupancy->lecturerDayLoad(
-            $session->lecturerId(),
-            $slot->dayOfWeek(),
-            $candidate->sessionId(),
-        ) >= $this->maxLecturerSessionsPerDay) {
+        if ($occupancy->lecturerDayLoad($session->lecturerId(), $slot->dayOfWeek(), $candidate->sessionId(),) >= $this->maxLecturerSessionsPerDay) {
             $violations[] = Violation::of(
                 self::HC_LECTURER_AVAILABLE,
                 sprintf(

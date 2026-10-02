@@ -29,7 +29,9 @@ final class AuditTrail
     public function remember(?string $ip, ?string $userAgent): void
     {
         $this->ip = $ip;
-        $this->userAgent = $userAgent === null ? null : substr($userAgent, 0, 255);
+        $this->userAgent = $userAgent === null
+            ? null
+            : substr($userAgent, 0, 255);
     }
 
     /**
@@ -64,6 +66,8 @@ final class AuditTrail
         }
         $packed = @inet_pton($this->ip);
 
-        return $packed === false ? null : $packed;
+        return $packed === false
+            ? null
+            : $packed;
     }
 }

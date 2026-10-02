@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Allocation;
 
+use function count;
+
 /**
  * Bookkeeping of what is already placed, so hard constraints can be evaluated in
  * near-constant time during candidate generation.
@@ -55,6 +57,13 @@ final class OccupancyIndex
 
         if ($session === null || $slot === null) {
             return;
+        }
+
+        // A session occupies exactly one place. Re-placing it without an
+        // unplace() first must move it, not count it twice against the day.
+        $previous = $this->bySession[$assignment->sessionId()] ?? null;
+        if ($previous !== null) {
+            $this->unplace($previous, $problem);
         }
 
         $this->roomSlot[$this->rs($assignment->roomId(), $assignment->timeSlotId())][$assignment->sessionId()] = true;
@@ -168,7 +177,7 @@ final class OccupancyIndex
 
     public function count(): int
     {
-        return \count($this->bySession);
+        return count($this->bySession);
     }
 
     private function rs(int $roomId, int $slotId): string

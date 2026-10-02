@@ -236,8 +236,11 @@ final class RoomService
         $where .= $this->departmentClause($identity, $scope, 'r.department_id', $bindings);
         $q = trim((string) ($query['q'] ?? ''));
         if ($q !== '') {
-            $where .= ' AND (r.code LIKE :q OR r.name LIKE :q OR r.building LIKE :q)';
-            $bindings['q'] = '%' . $q . '%';
+            $where .= ' AND (r.code LIKE :q_code OR r.name LIKE :q_name OR r.building LIKE :q_building)';
+            $like = '%' . $q . '%';
+            $bindings['q_code'] = $like;
+            $bindings['q_name'] = $like;
+            $bindings['q_building'] = $like;
         }
         $filters = [
             'building' => 'r.building',

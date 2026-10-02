@@ -33,8 +33,10 @@ final class CourseService
         $where = '1 = 1' . $this->dept($identity, $scope, 'c.department_id', $bindings);
         $q = trim((string) ($query['q'] ?? ''));
         if ($q !== '') {
-            $where .= ' AND (c.code LIKE :q OR c.title LIKE :q)';
-            $bindings['q'] = '%' . $q . '%';
+            $where .= ' AND (c.code LIKE :q_code OR c.title LIKE :q_title)';
+            $like = '%' . $q . '%';
+            $bindings['q_code'] = $like;
+            $bindings['q_title'] = $like;
         }
 
         $total = (int) $this->database->scalar('SELECT COUNT(*) FROM `courses` c WHERE ' . $where, $bindings);

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Console;
 
+use function dirname;
+
 /**
  * The one place a `bin/` script turns `$argv` into an exit code.
  *
@@ -56,7 +58,7 @@ final class Launcher
      */
     public static function main(array $argv, ?string $command = null, ?string $basePath = null): int
     {
-        $root = $basePath ?? \dirname(__DIR__, 2);
+        $root = $basePath ?? dirname(__DIR__, 2);
 
         // The wrapper has already required the autoloader; this catches the
         // callers that have not, so the failure is a sentence rather than a

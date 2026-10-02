@@ -45,6 +45,11 @@
     <exclude-pattern>*/db/*</exclude-pattern>
     <exclude-pattern>*/docs/*</exclude-pattern>
 
+    <!-- The lowest PHP composer.json allows. Version-aware sniffs default to the
+         PHP running phpcs, so without this a developer on 8.3+ gets typed class
+         constants "fixed" in, and every file touched stops parsing on 8.2. -->
+    <config name="php_version" value="80200"/>
+
     <arg name="colors"/>
     <!-- `console` is the extension-less entry point. It is a PHP file like any
          other and gets the same treatment; without this it would be the one
@@ -202,7 +207,25 @@
          rules below are what actually catch an FQ name that should have been an
          import, and an exception class spelled out in full. -->
     <rule ref="SlevomatCodingStandard.Namespaces.ReferenceUsedNamesOnly"/>
-    <rule ref="SlevomatCodingStandard.Namespaces.FullyQualifiedExceptions"/>
+    <!-- FullyQualifiedExceptions was removed, and it is the reason `composer
+         lint` could never pass. It demands every throw/catch be written
+         fully qualified (\ValidationException) while ReferenceUsedNamesOnly
+         above demands an imported class be referenced by its short name
+         (ValidationException). On a class that is imported — which is every
+         exception in this codebase — the two are unsatisfiable together, and
+         phpcbf does not converge: it alternates between them and reverts,
+         fixing nothing. Two full passes left the error count byte-identical
+         (820 before and after) while reporting 392 "fixes", which is the
+         signature of that loop.
+
+         ReferenceUsedNamesOnly is kept because it is the one consistent with
+         PSR-12, with this codebase's style, and with the UnusedUses and
+         AlphabeticallySortedUses rules above. It also still catches the thing
+         the removed rule was reaching for: a name spelled out in full where an
+         import already exists. The intent survives; only the contradiction
+         goes. If this project ever wants the opposite convention — FQ
+         exceptions everywhere — it must drop ReferenceUsedNamesOnly instead,
+         and the whole codebase re-import accordingly. It cannot have both. -->
     <rule ref="SlevomatCodingStandard.Attributes.RequireAttributeAfterDocComment"/>
     <!-- was: Namespaces.ClassStructure. It lives under Classes. -->
     <rule ref="SlevomatCodingStandard.Classes.ClassStructure"/>

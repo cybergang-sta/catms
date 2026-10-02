@@ -37,11 +37,6 @@ final class Database
 
     private int $transactionDepth = 0;
 
-    /**
-     * @param array<int, string> $trustedProxies CIDR-ish prefixes whose
-     *                                            REMOTE_ADDR may be treated as
-     *                                            the client for audit purposes.
-     */
     public function __construct(
         private readonly Config $config,
         private readonly Logger $logger,
@@ -132,7 +127,9 @@ final class Database
     }
 
     /**
-     * @param array<string, mixed> $bindings
+     * @param array<array-key, mixed> $bindings Named (string keys) or positional (a list), never both
+     *
+     * @return list<array<string, mixed>>
      */
     public function select(string $sql, array $bindings = []): array
     {
@@ -144,7 +141,7 @@ final class Database
     }
 
     /**
-     * @param array<string, mixed> $bindings
+     * @param array<array-key, mixed> $bindings Named (string keys) or positional (a list), never both
      *
      * @return array<string, mixed>|null Null when the query matched nothing.
      */
@@ -156,7 +153,7 @@ final class Database
     }
 
     /**
-     * @param array<string, mixed> $bindings
+     * @param array<array-key, mixed> $bindings Named (string keys) or positional (a list), never both
      */
     public function scalar(string $sql, array $bindings = []): mixed
     {
@@ -167,7 +164,7 @@ final class Database
     }
 
     /**
-     * @param array<string, mixed> $bindings
+     * @param array<array-key, mixed> $bindings Named (string keys) or positional (a list), never both
      */
     public function execute(string $sql, array $bindings = []): int
     {
@@ -335,7 +332,7 @@ final class Database
     }
 
     /**
-     * @param array<string, mixed> $bindings
+     * @param array<array-key, mixed> $bindings Named (string keys) or positional (a list), never both
      */
     private function run(string $sql, array $bindings): PDOStatement
     {

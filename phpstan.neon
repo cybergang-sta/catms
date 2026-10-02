@@ -34,28 +34,13 @@ parameters:
             - db
             - docs
 
-    # `mixed` is genuinely necessary in a small number of places: the cost
-    # function's dynamic per-term breakdown map, the decoded JSON payload of an
-    # outbox row, and raw toArray() output. Those are the boundaries of the typed
-    # world; everything inside them is checked.
-    ignoreErrors:
-        -
-            message: '#expects (array|iterable|list)[^,]*mixed given#'
-            path: src/Domain/Allocation/CostFunction.php
-        -
-            message: '#expects (array|iterable|list)[^,]*mixed given#'
-            path: src/Domain/Allocation/CostBreakdown.php
-        -
-            message: '#expects (array|iterable|list)[^,]*mixed given#'
-            path: src/Domain/Allocation/AllocationEngine.php
-        -
-            message: '#^Return type .* of method .* should be .+ but returns array\.<int, mixed>\.$#'
-            path: src/Domain/Allocation/CostBreakdown.php
-
     treatPhpDocTypesAsCertain: false
 
-    checkMissingIterableValueType: true
-    checkGenericClassInNonGenericObjectType: true
+    # `checkMissingIterableValueType` and `checkGenericClassInNonGenericObjectType`
+    # were removed in PHPStan 2.0: iterating value types is always checked, and
+    # the generic-object check is subsumed by the level. PHPStan rejects unknown
+    # keys rather than ignoring them, so leaving them here stops the run before
+    # a single file is analysed. `checkMissingCallableSignature` still exists.
     checkMissingCallableSignature: true
 
     # A removed or renamed class must break the build loudly rather than
@@ -66,6 +51,6 @@ parameters:
 
     # Universal object crates: PHPStan otherwise reports every method on these
     # as possibly-missing, which buries the real findings.
-    universalObjectCrateClasses:
+    universalObjectCratesClasses:
         - PDO
         - DateTimeImmutable

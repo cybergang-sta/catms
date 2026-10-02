@@ -73,8 +73,6 @@ final class RetentionCommand extends Command
      * `days` is the window; the predicate is an SQL fragment with one positional
      * placeholder for it. Kept as data rather than as methods so `--status`,
      * `--dry-run` and the real run cannot drift apart.
-     *
-     * @var array<string, array{table: string, column: string, days: int, window: string, basis: string}>
      */
     private const WINDOWS = [
         'audit-log' => [
@@ -118,8 +116,6 @@ final class RetentionCommand extends Command
      * Data with no expiry, documented in docs/DATA_MODEL.md §12 and reprinted by
      * `--status`, because "we delete nothing here" is an answer an auditor
      * should not have to take on trust.
-     *
-     * @var array<string, string>
      */
     private const NEVER_PURGED = [
         'users'       => 'Academic record; erasure is pseudonymisation, not deletion',
@@ -336,7 +332,9 @@ final class RetentionCommand extends Command
                 'windows' => $this->windowSummary($plan),
             ]);
 
-            return $failures === [] ? Kernel::SUCCESS : Kernel::FAILURE;
+            return $failures === []
+                ? Kernel::SUCCESS
+                : Kernel::FAILURE;
         }
 
         $output->title('Retention purge');
@@ -374,7 +372,9 @@ final class RetentionCommand extends Command
             ));
         }
 
-        return $failures === [] ? Kernel::SUCCESS : Kernel::FAILURE;
+        return $failures === []
+            ? Kernel::SUCCESS
+            : Kernel::FAILURE;
     }
 
     // -----------------------------------------------------------------------
@@ -392,7 +392,6 @@ final class RetentionCommand extends Command
      * string key into a named one, and the two cannot be mixed.
      *
      * @param array{table: string, column: string, days: int, window: string, basis: string} $window
-     *
      * @return array{table: string, window: string, basis: string, days: int, eligible: int,
      *               oldest: string|null, deleteSql: string}
      */
@@ -438,7 +437,7 @@ final class RetentionCommand extends Command
         $chunks = 0;
 
         while (true) {
-            $affected = $database->transaction(function (Database $database) use ($entry, $batch): int {
+            $affected = $database->transaction(static function (Database $database) use ($entry, $batch): int {
                 return $database->execute($entry['deleteSql'] . ' LIMIT ' . $batch, [$entry['days']]);
             });
 
@@ -577,7 +576,8 @@ final class RetentionCommand extends Command
 
         // A grant on the whole schema, or on everything, with ALL PRIVILEGES.
         $wide = $quoted . '\.`?\*`?|\*\.\*';
-        if (preg_match('/\bon\s+(?:' . $wide . ')/', $normalised) === 1
+        if (
+            preg_match('/\bon\s+(?:' . $wide . ')/', $normalised) === 1
             && str_contains($normalised, 'all privileges')
         ) {
             return true;
@@ -701,7 +701,9 @@ final class RetentionCommand extends Command
             $selected[$name] = self::WINDOWS[$name];
         }
 
-        return $selected === [] ? null : $selected;
+        return $selected === []
+            ? null
+            : $selected;
     }
 
     /** @param array<string, array<string, mixed>> $plan */
@@ -758,7 +760,6 @@ final class RetentionCommand extends Command
 
     /**
      * @param array<string, array<string, mixed>> $plan
-     *
      * @return array<string, int>
      */
     private function pastDue(array $plan): array
@@ -773,7 +774,6 @@ final class RetentionCommand extends Command
 
     /**
      * @param array<string, array<string, mixed>> $plan
-     *
      * @return array<string, array{policy: string, basis: string, past_due: int}>
      */
     private function windowSummary(array $plan): array

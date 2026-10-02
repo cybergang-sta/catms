@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Console;
 
+use RuntimeException;
+
 /**
  * Console output.
  *
@@ -65,7 +67,7 @@ final class Output
         $sink = fopen('php://memory', 'wb');
 
         if ($sink === false) {
-            throw new \RuntimeException('Cannot open an in-memory stream.');
+            throw new RuntimeException('Cannot open an in-memory stream.');
         }
 
         return new self($sink, $sink, false);
@@ -204,7 +206,9 @@ final class Output
 
     public function paint(string $colour, string $text): string
     {
-        return $this->decorated ? $colour . $text . self::RESET : $text;
+        return $this->decorated
+            ? $colour . $text . self::RESET
+            : $text;
     }
 
     private function stringify(string|int|float|bool|null $value): string

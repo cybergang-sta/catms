@@ -164,10 +164,12 @@ final class IncrementalRepairTest extends EngineTestCase
         $otherRoom = null;
         $otherSlot = null;
         foreach ($firstRun->assignments as $sessionId => $assignment) {
-            if ($sessionId === 2) {
-                $otherRoom = $assignment->roomId();
-                $otherSlot = $assignment->timeSlotId();
+            if ($sessionId !== 2) {
+                continue;
             }
+
+            $otherRoom = $assignment->roomId();
+            $otherSlot = $assignment->timeSlotId();
         }
         self::assertNotNull($otherRoom);
 

@@ -11,13 +11,16 @@ use App\Core\App;
 use App\Core\Database;
 use App\Core\Request;
 use App\Domain\Allocation\AllocationEngine;
+use App\Domain\Allocation\Assignment;
 use App\Domain\Allocation\CandidateGenerator;
 use App\Domain\Allocation\ConstraintChecker;
 use App\Domain\Allocation\CostFunction;
 use App\Domain\Allocation\EngineOptions;
+use App\Domain\Allocation\FixedClock;
 use App\Domain\Allocation\Room;
 use App\Domain\Allocation\RoomFeatures;
 use App\Domain\Allocation\SchedulingProblem;
+use App\Domain\Allocation\SchedulingResult;
 use App\Domain\Allocation\SessionRequest;
 use App\Domain\Allocation\TimeSlot;
 use App\Domain\Allocation\Violation;
@@ -98,8 +101,6 @@ final class SmokeCommand extends Command
      * `SchedulingProblemLoader` exactly — a plain `COUNT(*)` on `rooms` would
      * pass for a building where every room is in maintenance, and a count on
      * `time_slots` would pass for a grid that has been entirely deactivated.
-     *
-     * @var array<string, array{sql: string, label: string, minimum: int, remedy: string}>
      */
     private const REFERENCE_DATA = [
         'departments' => [
@@ -166,6 +167,9 @@ final class SmokeCommand extends Command
            AND (lca.`id` IS NOT NULL OR lcd.`id` IS NOT NULL OR co.`default_lecturer_id` IS NOT NULL)
         SQL;
 
+    /** The `--only` targets, in the order they run. */
+    private const GROUPS = ['config', 'database', 'schema', 'data', 'http', 'engine'];
+
     public function name(): string
     {
         return 'smoke';
@@ -217,9 +221,6 @@ final class SmokeCommand extends Command
             'strictly more informative: it also exercises the auth and RBAC wiring.',
         ];
     }
-
-    /** The `--only` targets, in the order they run. */
-    private const GROUPS = ['config', 'database', 'schema', 'data', 'http', 'engine'];
 
     public function run(Input $input, Output $output): int
     {
@@ -283,7 +284,9 @@ final class SmokeCommand extends Command
                 'checks'  => $results,
             ]);
 
-            return $failed === [] ? Kernel::SUCCESS : Kernel::FAILURE;
+            return $failed === []
+                ? Kernel::SUCCESS
+                : Kernel::FAILURE;
         }
 
         $output->title('Smoke test');
@@ -405,7 +408,9 @@ final class SmokeCommand extends Command
         // The same guard the HTTP bootstrap applies. If it throws, the group
         // wrapper turns it into a failure rather than letting it escape.
         $safe = true;
-        $reason = 'APP_KEY is long enough, APP_DEBUG is off, LOG_LEVEL is not debug';
+        $reason = $config->isProduction()
+            ? 'APP_KEY is long enough, APP_DEBUG is off, LOG_LEVEL is not debug'
+            : 'not production, so the APP_KEY, APP_DEBUG and LOG_LEVEL guards do not apply';
         try {
             $config->assertProductionSafe();
         } catch (Throwable $exception) {
@@ -852,6 +857,8 @@ final class SmokeCommand extends Command
      * work", not "is this department's timetable good". Accuracy is asserted at
      * 1.0 so that *any* unplaced session fails: a smoke suite that tolerates an
      * unplaced session is a smoke suite that will pass a broken engine.
+     *
+     * @return list<array{id: string, group: string, title: string, passed: bool, detail: string}>
      */
     private function checkEngine(): array
     {
@@ -880,7 +887,9 @@ final class SmokeCommand extends Command
 
         $total = $problem->totalSessions();
         $assigned = $result->assignedCount();
-        $accuracy = $total === 0 ? 0.0 : $assigned / $total;
+        $accuracy = $total === 0
+            ? 0.0
+            : $assigned / $total;
 
         $results = [];
 
@@ -936,9 +945,21 @@ final class SmokeCommand extends Command
         // Determinism: the same seed must give the same answer (ADR-005). A
         // second solve is cheap at this size, and it is the only check that can
         // catch a lost `seed()` call, which no other assertion would notice.
-        $repeat = $engine->solve($problem, [], $options);
-        $same = $repeat->assignedCount() === $assigned
-            && $repeat->orderedAssignments() === $result->orderedAssignments();
+        // Reproducibility is promised for a fixed iteration count, not for a
+        // wall-clock budget, so both solves run on a clock that never moves.
+        $pinned = new EngineOptions(
+            maxIterations: $options->maxIterations,
+            randomSeed: self::ENGINE_SEED,
+            timeBudgetSeconds: self::ENGINE_BUDGET_SECONDS,
+            clock: new FixedClock(),
+        );
+        $first = $engine->solve($problem, [], $pinned);
+        $repeat = $engine->solve($problem, [], $pinned);
+        $placements = static fn (SchedulingResult $run): array => array_map(
+            static fn (Assignment $assignment): array => $assignment->toArray(),
+            $run->orderedAssignments(),
+        );
+        $same = $placements($repeat) === $placements($first);
 
         $results[] = [
             'id'     => 'engine-deterministic',
@@ -950,7 +971,7 @@ final class SmokeCommand extends Command
                 : sprintf(
                     'two solves with seed %d disagreed (%d then %d assigned)',
                     self::ENGINE_SEED,
-                    $assigned,
+                    $first->assignedCount(),
                     $repeat->assignedCount(),
                 ),
         ];

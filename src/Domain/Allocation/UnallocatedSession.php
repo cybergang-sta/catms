@@ -16,9 +16,6 @@ namespace App\Domain\Allocation;
 final class UnallocatedSession
 {
     /**
-     * @param int                       $sessionId
-     * @param int                       $cohortId
-     * @param int                       $courseId
      * @param int                       $consideredCombinations Slot/room pairs examined.
      * @param array<string, int>        $blockingConstraints   Constraint code => times it
      *                                                           eliminated a combination.

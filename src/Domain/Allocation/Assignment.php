@@ -55,6 +55,7 @@ final class Assignment
         return $this->fromExisting;
     }
 
+    /** @param array<string, float>|null $breakdown */
     public function withCost(float $cost, ?array $breakdown = null): self
     {
         $clone = clone $this;

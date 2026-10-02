@@ -1,4 +1,4 @@
-import { extraView, handleClick, handleSubmit, install, isExtra, isPublic, profileExtras, publicHtml, roomAdminForm, sidebarLinks } from './manage.js?v=4';
+import { extraView, failureText, handleClick, handleSubmit, install, isExtra, isPublic, profileExtras, publicHtml, roomAdminForm, sidebarLinks } from './manage.js?v=12';
 
 const API = '/api/v1';
 
@@ -27,10 +27,11 @@ const state = {
 const root = document.getElementById('app');
 
 class ApiError extends Error {
-  constructor(message, status, code) {
+  constructor(message, status, code, details = null) {
     super(message);
     this.status = status;
     this.code = code;
+    this.details = details;
   }
 }
 
@@ -144,6 +145,7 @@ async function api(path, options = {}) {
       result.json?.error?.message || 'The request could not be completed.',
       result.response.status,
       result.json?.error?.code || 'ERROR',
+      result.json?.error?.details || null,
     );
   }
 
@@ -202,6 +204,11 @@ function icon(name) {
     alerts: '<path d="M6 16V10a6 6 0 1 1 12 0v6l1.5 2H4.5L6 16z"/><path d="M10 19a2 2 0 0 0 4 0"/>',
     prev: '<path d="M15 6 L9 12 L15 18"/>',
     next: '<path d="M9 6 L15 12 L9 18"/>',
+    manage: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',
+    availability: '<circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/>',
+    calendar: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14h3M14 14h2M8 17h2"/>',
+    reports: '<path d="M5 19V10M12 19V5M19 19v-7"/>',
+    find: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-3.5-3.5"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
   };
   return `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">${paths[name] || ''}</svg>`;
@@ -320,7 +327,7 @@ function failureNotice(error, subject) {
   if (error?.code === 'OFFLINE' || error?.status === 0) {
     return notice('You are offline', error.message || 'This view has not been saved on this device yet.');
   }
-  return notice('Something went wrong', error?.message || 'Try again in a moment.');
+  return notice('Something went wrong', failureText(error, 'Try again in a moment.'));
 }
 
 function fromGrid(entry) {
@@ -476,15 +483,19 @@ function shellHtml() {
     <aside class="sidebar">
       <a class="brand" href="/today" data-nav><img src="/assets/img/mark.svg" alt="" width="36" height="36"><span>CATMS</span></a>
       <nav aria-label="Primary">${navLinks('nav-link')}</nav>
-      <a class="user-card" href="/profile" data-nav>
-        <span class="avatar">${esc(initials(user))}</span>
-        <span><strong>${esc(user.display_name || 'Account')}</strong><small>${esc(roleLabel(user.role))}</small></span>
-      </a>
+      <div class="account">
+        <a class="user-card" href="/profile" data-nav>
+          <span class="avatar">${esc(initials(user))}</span>
+          <span><strong>${esc(user.display_name || 'Account')}</strong><small>${esc(roleLabel(user.role))}</small></span>
+        </a>
+        <button class="sign-out" type="button" data-logout>Sign out</button>
+      </div>
     </aside>
     <div class="workspace">
       <header class="topbar">
         <a class="brand brand-mobile" href="/today" data-nav><img src="/assets/img/mark.svg" alt="" width="32" height="32"><span>CATMS</span></a>
         <div class="topbar-spacer"></div>
+        <button class="sign-out" type="button" data-logout>Sign out</button>
         <a class="avatar-btn" href="/profile" data-nav aria-label="Your profile">${esc(initials(user))}</a>
       </header>
       <div id="sync-note" class="sync-note" hidden role="status"></div>
@@ -543,7 +554,9 @@ async function todayView() {
 }
 
 function visibleDays(days) {
-  return (days || []).filter((day) => day.iso <= 5 || (day.entries || []).length > 0 || day.is_non_teaching);
+  return (days || [])
+    .filter((day) => Number(day.iso) <= 5 || (day.entries || []).length > 0 || day.is_non_teaching)
+    .sort((left, right) => String(left.date).localeCompare(String(right.date)));
 }
 
 async function weekView() {
@@ -705,10 +718,9 @@ function roomCard(room) {
     <h2>${esc(room.name)}</h2>
     <p>${esc(room.building || 'Campus')}${esc(floor)}</p>
     <dl>
-      <div><dt>Id</dt><dd>${esc(room.id ?? '—')}</dd></div>
       <div><dt>Capacity</dt><dd>${esc(room.capacity ?? '—')}</dd></div>
       <div><dt>Type</dt><dd>${esc(pretty(room.room_type || room.type || 'room'))}</dd></div>
-      <div><dt>Features</dt><dd>${esc((room.features || []).join(', ') || '—')}</dd></div>
+      <div class="span"><dt>Features</dt><dd>${esc((room.features || []).map(pretty).join(' · ') || '—')}</dd></div>
     </dl>
   </article>`;
 }
@@ -770,7 +782,7 @@ async function profileView() {
   const rows = [
     ['Email', user.email],
     ['Phone', user.phone],
-    ['Student index', user.student_index],
+    ['Student ID', user.student_index],
     ['Status', pretty(user.status)],
   ].filter(([, value]) => value);
 
@@ -786,7 +798,6 @@ async function profileView() {
         <dl>${rows.map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>
         ${teaching}
         ${profileExtras()}
-        <button class="btn btn-ghost" type="button" data-logout>Sign out</button>
       </section>`,
   };
 }
@@ -948,7 +959,7 @@ async function signIn(form) {
     go('/today');
   } catch (reason) {
     error.hidden = false;
-    error.textContent = reason.message || 'Sign-in failed.';
+    error.textContent = failureText(reason, 'Sign-in failed.');
   } finally {
     button.disabled = false;
   }
@@ -970,7 +981,7 @@ async function markRead(id) {
     render();
     refreshBadge();
   } catch (error) {
-    toast(error.message || 'Could not mark that alert as read.');
+    toast(failureText(error, 'Could not mark that alert as read.'));
   }
 }
 
@@ -981,7 +992,16 @@ async function downloadCsv(semesterId) {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!response.ok) {
-      throw new ApiError('The export could not be downloaded.', response.status, 'ERROR');
+      let message = 'The export could not be downloaded.';
+      let details = null;
+      try {
+        const json = JSON.parse(await response.text());
+        message = json?.error?.message || message;
+        details = json?.error?.details || null;
+      } catch {
+        /* A failed export may not be JSON. */
+      }
+      throw new ApiError(message, response.status, 'ERROR', details);
     }
     const blob = await response.blob();
     const url = URL.createObjectURL(blob);
@@ -991,7 +1011,7 @@ async function downloadCsv(semesterId) {
     link.click();
     URL.revokeObjectURL(url);
   } catch (error) {
-    toast(error.message || 'The export could not be downloaded.');
+    toast(failureText(error, 'The export could not be downloaded.'));
   }
 }
 

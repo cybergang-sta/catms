@@ -110,12 +110,8 @@ try {
     // App::handle() is written to catch everything and route it through the
     // ExceptionHandler, so reaching this means a bug in the kernel itself.
     error_log('[catms] unhandled kernel failure: ' . $exception->getMessage());
-    $response = Response::error('SERVICE_UNAVAILABLE', 'The service is temporarily unavailable.', 500);
+    $response = Response::error(500, 'SERVICE_UNAVAILABLE', 'The service is temporarily unavailable.');
 }
 
 // ─── 4. Send ────────────────────────────────────────────────────────────────
-if (!$response instanceof Response) {
-    $emergency(500, 'The service is temporarily unavailable.');
-}
-
 $response->send();

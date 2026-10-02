@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Allocation;
 
+use function count;
+
 /**
  * The outcome of one solve.
  *
@@ -45,12 +47,12 @@ final class SchedulingResult
 
     public function assignedCount(): int
     {
-        return \count($this->assignments);
+        return count($this->assignments);
     }
 
     public function unallocatedCount(): int
     {
-        return \count($this->unallocated);
+        return count($this->unallocated);
     }
 
     /**
