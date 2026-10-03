@@ -45,6 +45,7 @@ export function navGroups() {
       {
         label: 'Reports',
         items: [
+          { href: '/alerts', id: 'alerts', label: 'Alerts' },
           { href: '/reports?report=conflicts', id: 'conflicts', label: 'Conflict Report' },
           { href: '/profile', id: 'profile', label: 'My Profile' },
         ],
@@ -175,22 +176,33 @@ export async function extraView(path) {
 export function handleClick(event) {
   const confirmBtn = event.target.closest('[data-confirm]');
   if (confirmBtn) {
-    act(`/allocations/${confirmBtn.dataset.confirm}/confirm`, 'The class is confirmed.');
+    act(`/allocations/${confirmBtn.dataset.confirm}/confirm`, 'The class is confirmed.').then((ok) => {
+      if (ok) refreshOpenView();
+    });
     return true;
   }
   const cancelBtn = event.target.closest('[data-cancel]');
   if (cancelBtn) {
     const reason = window.prompt('Why is this class cancelled?');
     if (reason && reason.trim()) {
-      act(`/allocations/${cancelBtn.dataset.cancel}/cancel`, 'The class is cancelled.', { reason: reason.trim() });
+      act(`/allocations/${cancelBtn.dataset.cancel}/cancel`, 'The class is cancelled.', { reason: reason.trim() }).then((ok) => {
+        if (ok) refreshOpenView();
+      });
     }
     return true;
   }
   const resolveBtn = event.target.closest('[data-resolve]');
   if (resolveBtn) {
-    const resolution = window.prompt('How was this conflict resolved?');
-    if (resolution && resolution.trim()) {
-      act(`/allocations/conflicts/${resolveBtn.dataset.resolve}/resolve`, 'Conflict marked resolved.', { resolution: resolution.trim() }).then(() => kit.go('/reports?report=conflicts'));
+    openResolveForm(resolveBtn);
+    return true;
+  }
+  const resolveCancel = event.target.closest('[data-resolve-cancel]');
+  if (resolveCancel) {
+    const card = resolveCancel.closest('.record');
+    card?.querySelector('[data-resolve-form]')?.remove();
+    const button = card?.querySelector('[data-resolve]');
+    if (button) {
+      button.hidden = false;
     }
     return true;
   }
@@ -214,7 +226,7 @@ export function handleClick(event) {
   const readAll = event.target.closest('[data-read-all]');
   if (readAll) {
     act('/notifications/read-all', 'Alerts marked read.', null, 'POST').then((ok) => {
-      if (ok) kit.render();
+      if (ok) refreshOpenView();
     });
     return true;
   }
@@ -228,6 +240,11 @@ export function handleClick(event) {
 
 export function handleSubmit(event) {
   const form = event.target;
+  if (form.hasAttribute('data-resolve-form')) {
+    event.preventDefault();
+    submitResolution(form);
+    return true;
+  }
   const id = form.id;
   if (id === 'register-form') {
     event.preventDefault();
@@ -443,6 +460,9 @@ function deptName(id, code) {
     CE: 'Computer Engineering',
     EE: 'Electrical Engineering',
     IS: 'Information Systems',
+    MA: 'Mathematics',
+    AC: 'Accounting',
+    NS: 'Nursing',
   };
   if (byCode[prefix]) {
     return byCode[prefix];
@@ -752,7 +772,7 @@ async function reportsView() {
   const paths = {
     utilisation: '/reports/utilisation',
     peak: '/reports/peak-usage',
-    conflicts: '/reports/conflicts',
+    conflicts: '/reports/conflicts?open=0',
     load: '/reports/lecturer-load',
   };
   let body = '';
@@ -840,13 +860,95 @@ async function findView() {
     </form><div class="record-list">${body}</div>`);
 }
 
+const RESOLUTIONS = [
+  ['accepted', 'Accepted as reported'],
+  ['assigned_room_added', 'A suitable room was added'],
+  ['cohort_split', 'The cohort was split'],
+  ['timetable_changed', 'The timetable was changed'],
+];
+
+function canResolve() {
+  return role() === 'admin' || can('allocation:override');
+}
+
+function resolutionLabel(code) {
+  const match = RESOLUTIONS.find(([value]) => value === code);
+  return match ? match[1] : '';
+}
+
+function storedResolution(row) {
+  let details = row.details;
+  if (typeof details === 'string' && details) {
+    try {
+      details = JSON.parse(details);
+    } catch {
+      details = null;
+    }
+  }
+  const code = details && typeof details === 'object' ? details.resolution : '';
+  return typeof code === 'string' ? code : '';
+}
+
+function resolveForm(id) {
+  const options = RESOLUTIONS.map(([value, label]) => `<option value="${kit.esc(value)}">${kit.esc(label)}</option>`).join('');
+  return `<form class="stack resolve-form" data-resolve-form>
+    <input type="hidden" name="id" value="${kit.esc(id)}">
+    <div class="field">
+      <label class="field-label" for="resolve-${kit.esc(id)}">How was this resolved?</label>
+      <select id="resolve-${kit.esc(id)}" name="resolution" required>${options}</select>
+    </div>
+    <div class="resolve-actions">
+      <button class="btn btn-primary" type="submit">Mark resolved</button>
+      <button class="btn btn-ghost" type="button" data-resolve-cancel>Cancel</button>
+    </div>
+  </form>`;
+}
+
+function openResolveForm(button) {
+  const card = button.closest('.record');
+  if (!card || card.querySelector('[data-resolve-form]')) {
+    return;
+  }
+  button.hidden = true;
+  card.insertAdjacentHTML('beforeend', resolveForm(button.dataset.resolve));
+  card.querySelector('select')?.focus();
+}
+
+function submitResolution(form) {
+  const data = new FormData(form);
+  const id = String(data.get('id') || '');
+  const resolution = String(data.get('resolution') || '');
+  const submit = form.querySelector('[type="submit"]');
+  if (submit) {
+    submit.disabled = true;
+  }
+  act(`/allocations/conflicts/${encodeURIComponent(id)}/resolve`, 'Conflict marked resolved.', { resolution }).then((ok) => {
+    if (ok) {
+      kit.go(`${location.pathname}${location.search}`);
+      return;
+    }
+    if (submit) {
+      submit.disabled = false;
+    }
+  });
+}
+
+function conflictRecord(row) {
+  const resolved = Boolean(row.resolved_at);
+  const reason = resolutionLabel(storedResolution(row));
+  const action = resolved
+    ? `<p class="muted">Resolved${reason ? ` · ${kit.esc(reason)}` : ''}</p>`
+    : (canResolve() ? `<button class="btn btn-ghost" type="button" data-resolve="${kit.esc(row.id)}">Resolve</button>` : '');
+  return `<article class="record"><header><strong>${kit.esc(row.constraint_code)}</strong>${kit.chip(row.severity)}${resolved ? kit.chip('resolved') : ''}</header><p>${kit.esc(row.message)}</p>${action}</article>`;
+}
+
 function records(data, report) {
   const rows = Array.isArray(data) ? data : kit.listOf(data);
   if (!rows.length) {
     return kit.notice('Nothing to report', 'Generate a timetable and the figures will fill in.');
   }
   if (report === 'conflicts') {
-    return `<div class="record-list">${rows.map((row) => `<article class="record"><header><strong>${kit.esc(row.constraint_code)}</strong>${kit.chip(row.severity)}</header><p>${kit.esc(row.message)}</p>${row.resolved_at ? '' : `<button class="btn btn-ghost" type="button" data-resolve="${kit.esc(row.id)}">Resolve</button>`}</article>`).join('')}</div>`;
+    return `<div class="record-list">${rows.map(conflictRecord).join('')}</div>`;
   }
   return `<div class="record-list">${rows.slice(0, 40).map((row) => `<article class="record"><p>${Object.entries(row).slice(0, 6).map(([key, value]) => `<span>${kit.esc(key)}: ${kit.esc(value ?? '')}</span>`).join(' · ')}</p></article>`).join('')}</div>`;
 }
@@ -992,7 +1094,8 @@ async function moveClass(form) {
   };
   if (body.room_id) payload.room_id = Number(body.room_id);
   if (body.time_slot_id) payload.time_slot_id = Number(body.time_slot_id);
-  await act(`/allocations/${body.id}/reassign`, 'Class updated.', payload);
+  const ok = await act(`/allocations/${body.id}/reassign`, 'Class updated.', payload);
+  if (ok) refreshOpenView();
 }
 
 async function updatePerson(form) {
@@ -1063,6 +1166,12 @@ async function downloadReport(kind) {
   } catch (error) {
     kit.toast(failureText(error, 'The export could not be downloaded.'));
   }
+}
+
+function refreshOpenView() {
+  kit.closeDialog();
+  kit.render();
+  kit.refreshBadge();
 }
 
 async function act(path, success, body, method = 'POST') {

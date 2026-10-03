@@ -64,7 +64,10 @@ INSERT INTO `departments` (`code`, `name`, `faculty`, `is_active`) VALUES
   ('IT', 'Information Technology',    'Faculty of Computing and Information Sciences', 1),
   ('CE', 'Computer Engineering',       'Faculty of Engineering',                        1),
   ('EE', 'Electrical Engineering',     'Faculty of Engineering',                        1),
-  ('IS', 'Information Systems',        'Faculty of Computing and Information Sciences', 1)
+  ('IS', 'Information Systems',        'Faculty of Computing and Information Sciences', 1),
+  ('MA', 'Mathematics',                'Faculty of Applied Sciences',                   1),
+  ('AC', 'Accounting',                 'Faculty of Business',                           1),
+  ('NS', 'Nursing',                    'Faculty of Health Sciences',                    1)
 ON DUPLICATE KEY UPDATE
   `name`     = VALUES(`name`),
   `faculty`  = VALUES(`faculty`),
@@ -689,7 +692,237 @@ SELECT c.`id`, u.`id`, 'enrolled'
 ON DUPLICATE KEY UPDATE `status` = 'enrolled';
 
 -- ---------------------------------------------------------------------------
--- 12. What a fresh instance can now do
+-- 12. Further departments, and one session the engine must refuse
+--
+--    Mathematics, Accounting and Nursing are separate faculties. Each has its
+--    own rooms, sized so enrolled_count + capacity_slack fits (BR-04) and so
+--    every required feature exists on a room that department may book (BR-05,
+--    HC-10). Shared halls stay shared; these rooms are not.
+--
+--    CS501-A is the deliberate miss. It needs a laboratory and 78 seats, and
+--    the largest laboratory is LB-E03's neighbours at 60. The engine must
+--    leave it unallocated and write a conflict, rather than put 78 students
+--    in a 60-seat lab. Every other cohort in this file is solvable.
+-- ---------------------------------------------------------------------------
+
+INSERT INTO `rooms` (`department_id`, `code`, `name`, `building`, `floor`, `capacity`, `room_type`, `status`, `is_bookable`, `notes`)
+SELECT d.`id`, r.`code`, r.`name`, r.`building`, r.`floor`, r.`capacity`, r.`room_type`, 'available', 1, r.`notes`
+  FROM `departments` d
+  JOIN (
+    SELECT 'MA' AS `dept`, 'LT-M01' AS `code`, 'Mathematics Theatre' AS `name`, 'Block M' AS `building`, 1 AS `floor`, 90 AS `capacity`, 'lecture' AS `room_type`, 'Home theatre for the mathematics cohorts' AS `notes`
+    UNION ALL SELECT 'MA', 'LT-M02', 'Mathematics Room M02', 'Block M', 1, 55, 'lecture', NULL
+    UNION ALL SELECT 'MA', 'SM-M01', 'Mathematics Seminar', 'Block M', 2, 40, 'seminar', NULL
+    UNION ALL SELECT 'AC', 'LT-K01', 'Accounting Theatre', 'Block K', 1, 100, 'lecture', 'Home theatre for the accounting cohorts'
+    UNION ALL SELECT 'AC', 'LT-K02', 'Accounting Room K02', 'Block K', 1, 60, 'lecture', NULL
+    UNION ALL SELECT 'AC', 'SM-K01', 'Accounting Seminar', 'Block K', 2, 40, 'seminar', NULL
+    UNION ALL SELECT 'NS', 'LT-N01', 'Nursing Theatre', 'Block N', 1, 80, 'lecture', 'Home theatre for the nursing cohorts'
+    UNION ALL SELECT 'NS', 'LT-N02', 'Nursing Room N02', 'Block N', 1, 50, 'lecture', NULL
+    UNION ALL SELECT 'NS', 'LB-N01', 'Clinical Skills Laboratory', 'Block N', 1, 36, 'lab', 'Benches for NS301; 36 seats, not a lecture hall'
+  ) r ON r.`dept` = d.`code`
+ON DUPLICATE KEY UPDATE
+  `name`        = VALUES(`name`),
+  `building`    = VALUES(`building`),
+  `floor`       = VALUES(`floor`),
+  `capacity`    = VALUES(`capacity`),
+  `room_type`   = VALUES(`room_type`),
+  `status`      = 'available',
+  `is_bookable` = 1,
+  `notes`       = VALUES(`notes`);
+
+INSERT INTO `room_feature_map` (`room_id`, `feature_id`)
+SELECT r.`id`, f.`id`
+  FROM `rooms` r
+  JOIN `room_features` f
+ WHERE (r.`code` IN ('LT-M01', 'LT-M02', 'SM-M01', 'LT-K01', 'LT-K02', 'SM-K01', 'LT-N01', 'LT-N02', 'LB-N01')
+        AND f.`code` IN ('projector', 'whiteboard'))
+    OR (r.`code` = 'LB-N01' AND f.`code` = 'lab_bench')
+    OR (r.`code` IN ('LT-M01', 'LT-K01', 'LT-N01') AND f.`code` = 'accessible')
+ON DUPLICATE KEY UPDATE `feature_id` = VALUES(`feature_id`);
+
+INSERT INTO `semesters`
+  (`department_id`, `name`, `academic_year`, `start_date`, `end_date`,
+   `registration_start`, `registration_end`, `teaching_start`, `teaching_end`,
+   `exam_start`, `exam_end`, `total_weeks`, `status`)
+SELECT d.`id`, s.`name`, s.`academic_year`, s.`start_date`, s.`end_date`,
+       s.`registration_start`, s.`registration_end`, s.`teaching_start`, s.`teaching_end`,
+       s.`exam_start`, s.`exam_end`, s.`total_weeks`, s.`status`
+  FROM `departments` d
+  JOIN (
+    SELECT 'MA' AS `code`, '2026-A' AS `name`, '2026/2027' AS `academic_year`,
+           '2026-09-01' AS `start_date`, '2027-01-30' AS `end_date`,
+           '2026-08-10' AS `registration_start`, '2026-08-28' AS `registration_end`,
+           '2026-09-07' AS `teaching_start`, '2026-12-18' AS `teaching_end`,
+           '2027-01-04' AS `exam_start`, '2027-01-23' AS `exam_end`,
+           15 AS `total_weeks`, 'active' AS `status`
+    UNION ALL
+    SELECT 'MA', '2027-A', '2027/2028', '2027-02-01', '2027-06-30',
+           '2027-01-11', '2027-01-29', '2027-02-08', '2027-05-21',
+           '2027-06-07', '2027-06-25', 15, 'planning'
+    UNION ALL
+    SELECT 'AC', '2026-A', '2026/2027', '2026-09-01', '2027-01-30',
+           '2026-08-10', '2026-08-28', '2026-09-07', '2026-12-18',
+           '2027-01-04', '2027-01-23', 15, 'active'
+    UNION ALL
+    SELECT 'AC', '2027-A', '2027/2028', '2027-02-01', '2027-06-30',
+           '2027-01-11', '2027-01-29', '2027-02-08', '2027-05-21',
+           '2027-06-07', '2027-06-25', 15, 'planning'
+    UNION ALL
+    SELECT 'NS', '2026-A', '2026/2027', '2026-09-01', '2027-01-30',
+           '2026-08-10', '2026-08-28', '2026-09-07', '2026-12-18',
+           '2027-01-04', '2027-01-23', 15, 'active'
+    UNION ALL
+    SELECT 'NS', '2027-A', '2027/2028', '2027-02-01', '2027-06-30',
+           '2027-01-11', '2027-01-29', '2027-02-08', '2027-05-21',
+           '2027-06-07', '2027-06-25', 15, 'planning'
+  ) s ON s.`code` = d.`code`
+ON DUPLICATE KEY UPDATE
+  `academic_year` = VALUES(`academic_year`),
+  `start_date` = VALUES(`start_date`),
+  `end_date` = VALUES(`end_date`),
+  `teaching_start` = VALUES(`teaching_start`),
+  `teaching_end` = VALUES(`teaching_end`),
+  `total_weeks` = VALUES(`total_weeks`),
+  `status` = VALUES(`status`);
+
+INSERT INTO `calendar_exceptions` (`semester_id`, `exception_date`, `type`, `label`)
+SELECT s.`id`, e.`exception_date`, e.`type`, e.`label`
+  FROM `semesters` s
+  JOIN `departments` d ON d.`id` = s.`department_id` AND d.`code` IN ('MA', 'AC', 'NS')
+  JOIN (
+    SELECT '2026-09-21' AS `exception_date`, 'holiday' AS `type`, 'Kwame Nkrumah Memorial Day' AS `label`
+    UNION ALL SELECT '2026-12-25', 'holiday', 'Christmas Day'
+    UNION ALL SELECT '2026-12-28', 'break', 'End of semester break'
+  ) e
+ WHERE s.`name` = '2026-A'
+ON DUPLICATE KEY UPDATE `type` = VALUES(`type`), `label` = VALUES(`label`);
+
+INSERT INTO `courses`
+  (`department_id`, `code`, `title`, `description`, `credit_hours`, `meetings_per_week`,
+   `duration_minutes`, `level`, `preferred_building`, `is_active`)
+SELECT d.`id`, c.`code`, c.`title`, c.`description`, c.`credit_hours`, c.`meetings_per_week`,
+       c.`duration_minutes`, c.`level`, c.`preferred_building`, 1
+  FROM `departments` d
+  JOIN (
+    SELECT 'MA' AS `dept`, 'MA101' AS `code`, 'Calculus I' AS `title`,
+           'Limits, differentiation and introductory integration' AS `description`,
+           3.0 AS `credit_hours`, 2 AS `meetings_per_week`, 120 AS `duration_minutes`,
+           100 AS `level`, 'Block M' AS `preferred_building`
+    UNION ALL SELECT 'MA', 'MA201', 'Linear Algebra',
+           'Vectors, matrices and systems of linear equations',
+           3.0, 2, 120, 200, 'Block M'
+    UNION ALL SELECT 'MA', 'MA301', 'Probability and Statistics',
+           'Distributions, estimation and hypothesis tests',
+           3.0, 1, 120, 300, 'Block M'
+    UNION ALL SELECT 'AC', 'AC101', 'Financial Accounting',
+           'The accounting equation, journals and published statements',
+           3.0, 2, 120, 100, 'Block K'
+    UNION ALL SELECT 'AC', 'AC201', 'Cost Accounting',
+           'Cost behaviour, budgeting and variance analysis',
+           3.0, 2, 120, 200, 'Block K'
+    UNION ALL SELECT 'AC', 'AC301', 'Auditing',
+           'Evidence, internal control and the audit opinion',
+           3.0, 1, 120, 300, 'Block K'
+    UNION ALL SELECT 'NS', 'NS101', 'Foundations of Nursing',
+           'Professional values, communication and basic care',
+           3.0, 2, 120, 100, 'Block N'
+    UNION ALL SELECT 'NS', 'NS201', 'Human Anatomy',
+           'Structure of the body systems taught to nurses',
+           3.0, 2, 120, 200, 'Block N'
+    UNION ALL SELECT 'NS', 'NS301', 'Clinical Skills',
+           'Bench practice of measurement, hygiene and first-line procedures',
+           3.0, 1, 120, 300, 'Block N'
+    UNION ALL SELECT 'CS', 'CS501', 'Computer Architecture Laboratory',
+           'Processor organisation practised on laboratory benches',
+           3.0, 1, 120, 500, 'Block E'
+  ) c ON c.`dept` = d.`code`
+ON DUPLICATE KEY UPDATE
+  `title` = VALUES(`title`),
+  `description` = VALUES(`description`),
+  `credit_hours` = VALUES(`credit_hours`),
+  `meetings_per_week` = VALUES(`meetings_per_week`),
+  `duration_minutes` = VALUES(`duration_minutes`),
+  `level` = VALUES(`level`),
+  `preferred_building` = VALUES(`preferred_building`),
+  `is_active` = 1;
+
+INSERT INTO `course_feature_requirements` (`course_id`, `feature_id`, `mandatory`)
+SELECT c.`id`, f.`id`, 1
+  FROM `courses` c
+  JOIN `room_features` f
+ WHERE (c.`code` IN ('MA101', 'MA201', 'MA301', 'AC101', 'AC201', 'AC301', 'NS101', 'NS201')
+        AND f.`code` = 'projector')
+    OR (c.`code` IN ('NS301', 'CS501') AND f.`code` IN ('projector', 'lab_bench'))
+ON DUPLICATE KEY UPDATE `mandatory` = VALUES(`mandatory`);
+
+INSERT INTO `cohorts` (`department_id`, `course_id`, `semester_id`, `name`, `enrolled_count`, `capacity_slack`)
+SELECT d.`id`, c.`id`, s.`id`, CONCAT(c.`code`, '-', g.`group`), g.`enrolled`, g.`slack`
+  FROM `departments` d
+  JOIN `semesters` s ON s.`department_id` = d.`id` AND s.`name` = '2026-A'
+  JOIN `courses` c ON c.`department_id` = d.`id`
+  JOIN (
+    SELECT 'MA' AS `dept`, 'MA101' AS `course`, 'A' AS `group`, 60 AS `enrolled`, 6 AS `slack`
+    UNION ALL SELECT 'MA', 'MA201', 'A', 36, 4
+    UNION ALL SELECT 'MA', 'MA301', 'A', 28, 3
+    UNION ALL SELECT 'AC', 'AC101', 'A', 72, 6
+    UNION ALL SELECT 'AC', 'AC201', 'A', 40, 4
+    UNION ALL SELECT 'AC', 'AC301', 'A', 30, 3
+    UNION ALL SELECT 'NS', 'NS101', 'A', 50, 5
+    UNION ALL SELECT 'NS', 'NS201', 'A', 36, 4
+    UNION ALL SELECT 'NS', 'NS301', 'A', 24, 2
+    -- 70 + 8 = 78 seats required; no laboratory has more than 60.
+    UNION ALL SELECT 'CS', 'CS501', 'A', 70, 8
+  ) g ON g.`course` = c.`code` AND g.`dept` = d.`code`
+ON DUPLICATE KEY UPDATE
+  `enrolled_count` = VALUES(`enrolled_count`),
+  `capacity_slack` = VALUES(`capacity_slack`);
+
+INSERT INTO `lecturer_course_assignments` (`lecturer_id`, `course_id`, `cohort_id`, `is_primary`)
+SELECT u.`id`, c.`id`, NULL, 1
+  FROM `courses` c
+  JOIN (
+    SELECT 'adjoa.mensah@utas.edu.gh' AS `email`, 'MA101' AS `code`
+    UNION ALL SELECT 'adjoa.mensah@utas.edu.gh', 'MA201'
+    UNION ALL SELECT 'kwesi.owusu@utas.edu.gh', 'MA301'
+    UNION ALL SELECT 'abena.darko@utas.edu.gh', 'AC101'
+    UNION ALL SELECT 'abena.darko@utas.edu.gh', 'AC201'
+    UNION ALL SELECT 'yaw.mensah@utas.edu.gh', 'AC301'
+    UNION ALL SELECT 'akosua.asante@utas.edu.gh', 'NS101'
+    UNION ALL SELECT 'akosua.asante@utas.edu.gh', 'NS201'
+    UNION ALL SELECT 'kofi.boateng@utas.edu.gh', 'NS301'
+    UNION ALL SELECT 'kwadwo.baah@utas.edu.gh', 'CS501'
+  ) m ON m.`code` = c.`code`
+  JOIN `users` u ON u.`email` = m.`email`
+ WHERE NOT EXISTS (
+         SELECT 1 FROM `lecturer_course_assignments` lca
+          WHERE lca.`lecturer_id` = u.`id`
+            AND lca.`course_id` = c.`id`
+            AND lca.`cohort_id` IS NULL
+   );
+
+INSERT INTO `enrollments` (`cohort_id`, `student_id`, `status`)
+SELECT c.`id`, u.`id`, 'enrolled'
+  FROM `users` u
+  JOIN (
+    SELECT 'ama.quaye@utas.edu.gh' AS `email`, 'MA101-A' AS `cohort`
+    UNION ALL SELECT 'ama.quaye@utas.edu.gh', 'MA201-A'
+    UNION ALL SELECT 'kojo.asare@utas.edu.gh', 'MA301-A'
+    UNION ALL SELECT 'efua.opoku@utas.edu.gh', 'AC101-A'
+    UNION ALL SELECT 'efua.opoku@utas.edu.gh', 'AC201-A'
+    UNION ALL SELECT 'yaw.danquah@utas.edu.gh', 'AC301-A'
+    UNION ALL SELECT 'abena.tetteh@utas.edu.gh', 'NS101-A'
+    UNION ALL SELECT 'abena.tetteh@utas.edu.gh', 'NS201-A'
+    UNION ALL SELECT 'nana.owusu@utas.edu.gh', 'NS301-A'
+    UNION ALL SELECT 'akua.frimpong@utas.edu.gh', 'CS501-A'
+    UNION ALL SELECT 'akua.frimpong@utas.edu.gh', 'CS203-A'
+    UNION ALL SELECT 'kojo.asante@utas.edu.gh', 'CS202-A'
+  ) m ON m.`email` = u.`email`
+  JOIN `cohorts` c ON c.`name` = m.`cohort`
+  JOIN `semesters` s ON s.`id` = c.`semester_id` AND s.`name` = '2026-A'
+ WHERE u.`student_index` REGEXP '^[0-9]+$'
+ON DUPLICATE KEY UPDATE `status` = 'enrolled';
+
+-- ---------------------------------------------------------------------------
+-- 13. What a fresh instance can now do
 --
 --    php bin/console verify-integrity          # schema, privileges, migrations
 --    php bin/console generate --semester=2026-A --department=CS --dry-run
@@ -698,7 +931,7 @@ ON DUPLICATE KEY UPDATE `status` = 'enrolled';
 --    php bin/console smoke
 --
 --    WHAT THE DATA LOOKS LIKE
---      5 departments · 21 courses · 21 cohorts
+--      8 departments · 31 courses · 31 cohorts
 --      17 time slots, 16 of them active
 --      22 rooms, 19 of them both available and bookable, 10 of them lecture theatres
 --      3 room features required by lab-heavy courses

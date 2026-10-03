@@ -69,7 +69,7 @@ final class AllocationController extends Controller
     public function resolveConflict(Request $request): Response
     {
         $input = $this->validator()->validateStrict($request->json(), [
-            'resolution' => 'required|string|max:500',
+            'resolution' => 'required|string|in:accepted,assigned_room_added,cohort_split,timetable_changed',
         ]);
 
         return Response::success($this->allocations()->resolveConflict(

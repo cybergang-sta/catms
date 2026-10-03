@@ -695,6 +695,16 @@ main {
   display: none;
 }
 
+.page-head h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.page-head h1 .badge {
+  margin-left: 0;
+}
+
 .badge {
   min-width: 18px;
   height: 18px;
@@ -862,7 +872,8 @@ main {
 }
 
 .chip-confirmed,
-.chip-available { color: var(--sage); background: #e7f3ea; }
+.chip-available,
+.chip-resolved { color: var(--sage); background: #e7f3ea; }
 .chip-proposed { color: var(--ochre-deep); background: #f8f1e3; }
 .chip-updated,
 .chip-info { color: var(--blue); background: #e7eef6; }
@@ -1658,6 +1669,20 @@ body.modal-open {
 .record h2 {
   font-size: 1.15rem;
   margin: 8px 0;
+}
+
+.resolve-form {
+  margin-top: 14px;
+}
+
+.resolve-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.resolve-actions .btn {
+  width: auto;
 }
 
 .record-list {

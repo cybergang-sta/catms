@@ -101,6 +101,10 @@ final class SeedCommand extends Command
             'first_name' => 'Yaw', 'last_name' => 'Asante', 'staff_id' => 'UTAS/LEC/0003', 'department' => 'CS',
         ],
         [
+            'email' => 'yaw.darko@utas.edu.gh', 'password' => 'Admin@1234', 'role' => 'admin',
+            'first_name' => 'Yaw', 'last_name' => 'Darko', 'staff_id' => 'UTAS/ADM/0002', 'department' => 'IT',
+        ],
+        [
             'email' => 'efua.mensah@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
             'first_name' => 'Efua', 'last_name' => 'Mensah', 'staff_id' => 'UTAS/LEC/0004', 'department' => 'IT',
         ],
@@ -109,12 +113,24 @@ final class SeedCommand extends Command
             'first_name' => 'Kofi', 'last_name' => 'Addo', 'staff_id' => 'UTAS/LEC/0005', 'department' => 'IT',
         ],
         [
+            'email' => 'ama.amponsah@utas.edu.gh', 'password' => 'Admin@1234', 'role' => 'admin',
+            'first_name' => 'Ama', 'last_name' => 'Amponsah', 'staff_id' => 'UTAS/ADM/0003', 'department' => 'CE',
+        ],
+        [
             'email' => 'nana.amponsah@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
             'first_name' => 'Nana', 'last_name' => 'Amponsah', 'staff_id' => 'UTAS/LEC/0006', 'department' => 'CE',
         ],
         [
+            'email' => 'kwame.sarpong@utas.edu.gh', 'password' => 'Admin@1234', 'role' => 'admin',
+            'first_name' => 'Kwame', 'last_name' => 'Sarpong', 'staff_id' => 'UTAS/ADM/0004', 'department' => 'EE',
+        ],
+        [
             'email' => 'abena.sarpong@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
             'first_name' => 'Abena', 'last_name' => 'Sarpong', 'staff_id' => 'UTAS/LEC/0007', 'department' => 'EE',
+        ],
+        [
+            'email' => 'akosua.frimpong@utas.edu.gh', 'password' => 'Admin@1234', 'role' => 'admin',
+            'first_name' => 'Akosua', 'last_name' => 'Frimpong', 'staff_id' => 'UTAS/ADM/0005', 'department' => 'IS',
         ],
         [
             'email' => 'kojo.frimpong@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
@@ -167,6 +183,78 @@ final class SeedCommand extends Command
         [
             'email' => 'esi.appiah@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
             'first_name' => 'Esi', 'last_name' => 'Appiah', 'student_index' => '20230410042', 'department' => 'IS',
+        ],
+        [
+            'email' => 'nana.mensah@utas.edu.gh', 'password' => 'Admin@1234', 'role' => 'admin',
+            'first_name' => 'Nana', 'last_name' => 'Mensah', 'staff_id' => 'UTAS/ADM/0006', 'department' => 'MA',
+        ],
+        [
+            'email' => 'adjoa.mensah@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
+            'first_name' => 'Adjoa', 'last_name' => 'Mensah', 'staff_id' => 'UTAS/LEC/0009', 'department' => 'MA',
+        ],
+        [
+            'email' => 'kwesi.owusu@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
+            'first_name' => 'Kwesi', 'last_name' => 'Owusu', 'staff_id' => 'UTAS/LEC/0010', 'department' => 'MA',
+        ],
+        [
+            'email' => 'kojo.darko@utas.edu.gh', 'password' => 'Admin@1234', 'role' => 'admin',
+            'first_name' => 'Kojo', 'last_name' => 'Darko', 'staff_id' => 'UTAS/ADM/0007', 'department' => 'AC',
+        ],
+        [
+            'email' => 'abena.darko@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
+            'first_name' => 'Abena', 'last_name' => 'Darko', 'staff_id' => 'UTAS/LEC/0011', 'department' => 'AC',
+        ],
+        [
+            'email' => 'yaw.mensah@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
+            'first_name' => 'Yaw', 'last_name' => 'Mensah', 'staff_id' => 'UTAS/LEC/0012', 'department' => 'AC',
+        ],
+        [
+            'email' => 'efua.asante@utas.edu.gh', 'password' => 'Admin@1234', 'role' => 'admin',
+            'first_name' => 'Efua', 'last_name' => 'Asante', 'staff_id' => 'UTAS/ADM/0008', 'department' => 'NS',
+        ],
+        [
+            'email' => 'akosua.asante@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
+            'first_name' => 'Akosua', 'last_name' => 'Asante', 'staff_id' => 'UTAS/LEC/0013', 'department' => 'NS',
+        ],
+        [
+            'email' => 'kofi.boateng@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
+            'first_name' => 'Kofi', 'last_name' => 'Boateng', 'staff_id' => 'UTAS/LEC/0014', 'department' => 'NS',
+        ],
+        [
+            'email' => 'kwadwo.baah@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
+            'first_name' => 'Kwadwo', 'last_name' => 'Baah', 'staff_id' => 'UTAS/LEC/0015', 'department' => 'CS',
+        ],
+        [
+            'email' => 'ama.quaye@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Ama', 'last_name' => 'Quaye', 'student_index' => '20230410051', 'department' => 'MA',
+        ],
+        [
+            'email' => 'kojo.asare@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Kojo', 'last_name' => 'Asare', 'student_index' => '20230410052', 'department' => 'MA',
+        ],
+        [
+            'email' => 'efua.opoku@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Efua', 'last_name' => 'Opoku', 'student_index' => '20230410061', 'department' => 'AC',
+        ],
+        [
+            'email' => 'yaw.danquah@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Yaw', 'last_name' => 'Danquah', 'student_index' => '20230410062', 'department' => 'AC',
+        ],
+        [
+            'email' => 'abena.tetteh@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Abena', 'last_name' => 'Tetteh', 'student_index' => '20230410071', 'department' => 'NS',
+        ],
+        [
+            'email' => 'nana.owusu@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Nana', 'last_name' => 'Owusu', 'student_index' => '20230410072', 'department' => 'NS',
+        ],
+        [
+            'email' => 'akua.frimpong@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Akua', 'last_name' => 'Frimpong', 'student_index' => '20230410004', 'department' => 'CS',
+        ],
+        [
+            'email' => 'kojo.asante@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Kojo', 'last_name' => 'Asante', 'student_index' => '20230410005', 'department' => 'CS',
         ],
     ];
 

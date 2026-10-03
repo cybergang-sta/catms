@@ -84,6 +84,17 @@ final class SchedulingProblemLoader
 
         $rooms = $this->rooms($departmentId, (string) $semester['teaching_start'], (string) $semester['teaching_end']);
         $blocked = $this->roomBlocks($semesterId, $warnings);
+        // BR-01 is institution-wide: a shared room already holding another
+        // department's class cannot be offered again. Department rooms are
+        // excluded by HC-10, and this department's own rows are the warm start.
+        foreach ($this->foreignSharedOccupancy($departmentId) as $roomId => $slotIds) {
+            foreach ($slotIds as $slotId) {
+                $blocked[$roomId] ??= [];
+                if (!in_array($slotId, $blocked[$roomId], true)) {
+                    $blocked[$roomId][] = $slotId;
+                }
+            }
+        }
         $problem->withRooms($this->attachBlocks($rooms, $blocked));
 
         $cohorts = $this->cohorts($departmentId, $semesterId, $warnings);
@@ -439,6 +450,42 @@ final class SchedulingProblemLoader
                 . 'A recurring timetable has no per-date row; cancel that week\'s allocation instead.',
                 $oneOffs,
             );
+        }
+
+        return $blocked;
+    }
+
+    /**
+     * Shared rooms already taken by another department's published week.
+     *
+     * The unique key on `allocations` is (room, slot, week), not (department,
+     * room, slot). A second department that cannot see those rows will propose
+     * a double booking and the write will be rejected. Feeding them in as
+     * HC-9 blocks makes the solver honour BR-01 before it commits.
+     *
+     * @return array<int, list<int>>
+     */
+    private function foreignSharedOccupancy(int $departmentId): array
+    {
+        $rows = $this->database->select(
+            'SELECT a.room_id, a.time_slot_id
+             FROM `allocations` a
+             INNER JOIN `rooms` r ON r.id = a.room_id
+             WHERE a.department_id <> :department
+               AND a.week_number = 1
+               AND a.status IN (\'proposed\', \'confirmed\', \'updated\')
+               AND r.department_id IS NULL',
+            ['department' => $departmentId],
+        );
+
+        $blocked = [];
+        foreach ($rows as $row) {
+            $roomId = (int) $row['room_id'];
+            $blocked[$roomId] ??= [];
+            $slotId = (int) $row['time_slot_id'];
+            if (!in_array($slotId, $blocked[$roomId], true)) {
+                $blocked[$roomId][] = $slotId;
+            }
         }
 
         return $blocked;

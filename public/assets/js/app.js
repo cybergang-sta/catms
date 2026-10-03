@@ -1,4 +1,4 @@
-import { extraView, failureText, handleClick, handleSubmit, homePath, install, isExtra, isPublic, mobileTabs, navGroups, profileExtras, publicHtml, roomAdminForm } from './manage.js?v=17';
+import { extraView, failureText, handleClick, handleSubmit, homePath, install, isExtra, isPublic, mobileTabs, navGroups, profileExtras, publicHtml, roomAdminForm } from './manage.js?v=22';
 
 const API = '/api/v1';
 
@@ -104,6 +104,7 @@ async function api(path, options = {}) {
     const response = await fetch(API + path, {
       method: options.method || 'GET',
       headers,
+      cache: 'no-store',
       body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
     });
     const text = await response.text();
@@ -758,9 +759,14 @@ function roomCard(room) {
 
 async function alertsView() {
   let body;
+  let unreadCount = 0;
   try {
-    const result = await api('/notifications?per_page=40');
+    const [result, count] = await Promise.all([
+      api('/notifications?per_page=40'),
+      api('/notifications/unread-count'),
+    ]);
     const items = listOf(result.data);
+    unreadCount = Number(count.data?.unread_count || 0);
     body = items.length
       ? `<div class="alert-list">${items.map(alertCard).join('')}</div>`
       : notice('You are up to date', 'Room changes, cancellations, and confirmations will land here.');
@@ -768,10 +774,17 @@ async function alertsView() {
     body = failureNotice(error, 'Alerts');
   }
 
+  const markAll = unreadCount
+    ? '<button class="btn btn-ghost" type="button" data-read-all>Mark all read</button>'
+    : '';
+  const countBadge = unreadCount
+    ? `<span class="badge" data-badge>${esc(unreadCount)}</span>`
+    : '';
+
   return {
     cachedAt: null,
     title: 'Alerts',
-    html: `<header class="page-head"><div><h1>Alerts</h1><p class="muted">Changes to the classes that involve you.</p></div><button class="btn btn-ghost" type="button" data-read-all>Mark all read</button></header>${body}`,
+    html: `<header class="page-head"><div><h1>Alerts${countBadge}</h1><p class="muted">Changes to the classes that involve you.</p></div>${markAll}</header>${body}`,
   };
 }
 
@@ -856,7 +869,7 @@ function dialogHtml(card) {
       ${chip(card.status)}
       <dl>${fields.map(([label, value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>
       ${session()?.user?.role === 'admin' && card.id ? `<div class="stack">
-        <button class="btn btn-primary" type="button" data-confirm="${esc(card.id)}">Confirm</button>
+        ${card.status === 'confirmed' || card.status === 'cancelled' ? '' : `<button class="btn btn-primary" type="button" data-confirm="${esc(card.id)}">Confirm</button>`}
         <button class="btn btn-ghost" type="button" data-cancel="${esc(card.id)}">Cancel class</button>
         <form id="move-form" class="stack">
           <input type="hidden" name="id" value="${esc(card.id)}">
@@ -945,22 +958,33 @@ function setActive(path) {
   });
 }
 
+let badgeTicket = 0;
+
 function setBadge(count) {
+  const total = Math.max(0, Number(count) || 0);
   document.querySelectorAll('[data-badge]').forEach((badge) => {
-    if (!count) {
+    if (!total) {
       badge.hidden = true;
+      badge.textContent = '';
       return;
     }
     badge.hidden = false;
-    badge.textContent = count > 9 ? '9+' : String(count);
+    badge.textContent = String(total);
   });
 }
 
 async function refreshBadge() {
+  const ticket = ++badgeTicket;
   try {
     const result = await api('/notifications/unread-count');
+    if (ticket !== badgeTicket) {
+      return;
+    }
     setBadge(Number(result.data?.unread_count || 0));
   } catch {
+    if (ticket !== badgeTicket) {
+      return;
+    }
     setBadge(0);
   }
 }
@@ -1009,11 +1033,24 @@ async function signOut() {
   go('/login');
 }
 
+function paintAlertRead(id) {
+  const button = document.querySelector(`[data-read="${CSS.escape(String(id))}"]`);
+  const card = button?.closest('.alert-card');
+  if (card) {
+    card.classList.remove('is-unread');
+    button.remove();
+  }
+  if (!document.querySelector('.alert-card.is-unread')) {
+    document.querySelector('[data-read-all]')?.remove();
+  }
+}
+
 async function markRead(id) {
   try {
     await api(`/notifications/${encodeURIComponent(id)}/read`, { method: 'POST', body: {} });
-    render();
-    refreshBadge();
+    paintAlertRead(id);
+    await render();
+    await refreshBadge();
   } catch (error) {
     toast(failureText(error, 'Could not mark that alert as read.'));
   }
@@ -1281,7 +1318,7 @@ function onKey(event) {
 }
 
 install({
-  api, esc, go, notice, failureNotice, chip, pretty, session, saveSession, toast, listOf, render, icon,
+  api, esc, go, notice, failureNotice, chip, pretty, session, saveSession, toast, listOf, render, closeDialog, refreshBadge, icon,
 });
 
 root.addEventListener('click', onClick);

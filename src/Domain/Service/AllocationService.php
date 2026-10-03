@@ -278,11 +278,24 @@ final class AllocationService
             return $before;
         }
 
+        $details = $before['details'] ?? null;
+        if (is_string($details)) {
+            $decoded = json_decode($details, true);
+            $details = is_array($decoded) ? $decoded : [];
+        } elseif (!is_array($details)) {
+            $details = [];
+        }
+        $details['resolution'] = $resolution;
+
         $this->database->execute(
             'UPDATE `allocation_conflicts`'
-            . ' SET `resolved_at` = UTC_TIMESTAMP(), `resolved_by` = :actor'
+            . ' SET `resolved_at` = UTC_TIMESTAMP(), `resolved_by` = :actor, `details` = :details'
             . ' WHERE `id` = :id',
-            ['actor' => $actor->userId(), 'id' => $id],
+            [
+                'actor'   => $actor->userId(),
+                'id'      => $id,
+                'details' => json_encode($details, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),
+            ],
         );
         $after = $this->database->selectOne(
             'SELECT * FROM `allocation_conflicts` WHERE `id` = :id',
