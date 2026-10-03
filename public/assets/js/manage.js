@@ -19,20 +19,87 @@ export function isPublic(path) {
   return PUBLIC.includes(path);
 }
 
+export function homePath() {
+  return role() === 'admin' || can('user:view') ? '/manage' : '/today';
+}
+
+export function navGroups() {
+  if (role() === 'admin') {
+    return [
+      {
+        label: 'Main',
+        items: [
+          { href: '/manage', id: 'manage', label: 'Dashboard' },
+          { href: '/week', id: 'week', label: 'Timetable View' },
+        ],
+      },
+      {
+        label: 'Management',
+        items: [
+          { href: '/generate', id: 'allocate', label: 'Allocate Schedule' },
+          { href: '/courses', id: 'courses', label: 'Courses' },
+          { href: '/rooms', id: 'rooms', label: 'Lecture Halls' },
+          { href: '/users', id: 'lecturers', label: 'Lecturers' },
+        ],
+      },
+      {
+        label: 'Reports',
+        items: [
+          { href: '/reports?report=conflicts', id: 'conflicts', label: 'Conflict Report' },
+          { href: '/profile', id: 'profile', label: 'My Profile' },
+        ],
+      },
+      {
+        label: 'More',
+        items: [
+          { href: '/today', id: 'today', label: 'Today' },
+          { href: '/calendar', id: 'calendar', label: 'Calendar' },
+          { href: '/find', id: 'find', label: 'Find' },
+          { href: '/audit', id: 'reports', label: 'Audit' },
+          { href: '/alerts', id: 'alerts', label: 'Alerts' },
+        ],
+      },
+    ];
+  }
+  const main = [
+    { href: '/today', id: 'today', label: 'Today' },
+    { href: '/week', id: 'week', label: 'Timetable View' },
+    { href: '/term', id: 'term', label: 'Term' },
+  ];
+  const campus = [
+    { href: '/rooms', id: 'rooms', label: 'Lecture Halls' },
+    { href: '/alerts', id: 'alerts', label: 'Alerts' },
+  ];
+  if (role() === 'lecturer') {
+    campus.unshift({ href: '/availability', id: 'availability', label: 'Availability' });
+    campus.push({ href: '/calendar', id: 'calendar', label: 'Calendar' });
+  }
+  const reports = [];
+  if (role() === 'lecturer' || can('report:view')) {
+    reports.push({ href: '/reports', id: 'reports', label: 'Reports' });
+  }
+  reports.push({ href: '/find', id: 'find', label: 'Find' });
+  reports.push({ href: '/profile', id: 'profile', label: 'My Profile' });
+  return [
+    { label: 'Main', items: main },
+    { label: 'Campus', items: campus },
+    { label: 'Account', items: reports },
+  ];
+}
+
 export function sidebarLinks() {
-  const links = [];
-  if (can('user:manage')) {
-    links.push({ href: '/manage', id: 'manage', label: 'Manage' });
-  }
-  if (role() === 'lecturer' || role() === 'admin') {
-    links.push({ href: '/availability', id: 'availability', label: 'Availability' });
-  }
-  links.push({ href: '/calendar', id: 'calendar', label: 'Calendar' });
-  if (role() === 'lecturer' || role() === 'admin' || can('report:view')) {
-    links.push({ href: '/reports', id: 'reports', label: 'Reports' });
-  }
-  links.push({ href: '/find', id: 'find', label: 'Find' });
-  return links;
+  return navGroups().flatMap((group) => group.items);
+}
+
+export function mobileTabs() {
+  const home = homePath();
+  return [
+    { href: home, id: home === '/manage' ? 'manage' : 'today', label: home === '/manage' ? 'Home' : 'Today' },
+    { href: '/week', id: 'week', label: 'Week' },
+    { href: '/rooms', id: 'rooms', label: 'Halls' },
+    { href: role() === 'admin' ? '/reports?report=conflicts' : '/alerts', id: role() === 'admin' ? 'conflicts' : 'alerts', label: role() === 'admin' ? 'Conflicts' : 'Alerts' },
+    { href: '/profile', id: 'profile', label: 'Profile' },
+  ];
 }
 
 export function roomAdminForm() {
@@ -94,7 +161,7 @@ export function profileExtras() {
       <div class="field"><div class="field-label"><label for="pw-again">Confirm new password</label></div><input id="pw-again" name="password_confirmation" type="password" autocomplete="new-password" required></div>
       <button class="btn btn-primary" type="submit">Change password</button>
     </form>
-    <nav class="tools" aria-label="More">${sidebarLinks().map((link) => `<a data-nav href="${link.href}">${kit.esc(link.label)}</a>`).join('')}</nav>`;
+    <nav class="tools" aria-label="More">${sidebarLinks().filter((link) => link.href !== '/profile').map((link) => `<a data-nav href="${link.href}">${kit.esc(link.label)}</a>`).join('')}</nav>`;
 }
 
 export function publicHtml(path) {
@@ -331,7 +398,7 @@ function page(title, eyebrow, html) {
   return {
     cachedAt: null,
     title,
-    html: `<header class="page-head"><div><p class="eyebrow">${kit.esc(eyebrow)}</p><h1>${kit.esc(title)}</h1></div></header>${html}`,
+    html: `<header class="page-head"><div><h1>${kit.esc(title)}</h1><p class="muted">${kit.esc(eyebrow)}</p></div></header>${html}`,
   };
 }
 
@@ -378,47 +445,121 @@ function resetCard() {
     </form>`;
 }
 
-function manageHome() {
-  const links = [
-    ['/users', 'People', 'Register students, lecturers, and administrators.'],
-    ['/courses', 'Courses', 'Codes, hours, cohorts, and required room features.'],
-    ['/calendar', 'Calendar', 'Semesters and the teaching window.'],
-    ['/generate', 'Allocate', 'Generate or repair the timetable.'],
-    ['/reports', 'Reports', 'Utilisation, peak hours, conflicts, and load.'],
-    ['/audit', 'Audit', 'Overrides and other administrative changes.'],
-    ['/rooms', 'Rooms', 'Search, compare, and add classrooms.'],
-  ];
-  const cards = links.map(([href, title, body]) => `<a class="room" data-nav href="${href}"><h2>${kit.esc(title)}</h2><p>${kit.esc(body)}</p></a>`).join('');
-  return page('Manage', 'Department', `<div class="room-grid">${cards}</div>`);
+function deptName(id) {
+  if (id === 1) return 'Computer Science';
+  if (id === 2) return 'Information Technology';
+  if (id === 3) return 'Computer Engineering';
+  return id ? `Department ${id}` : 'Shared';
+}
+
+function codeMark(code) {
+  return `<span class="code-mark">${kit.esc(String(code || '').slice(0, 2).toUpperCase())}</span>`;
+}
+
+async function manageHome() {
+  let courses = [];
+  let rooms = [];
+  let allocations = [];
+  let conflicts = [];
+  let dash = {};
+  try {
+    const [courseRes, roomRes, allocRes, dashRes, conflictRes] = await Promise.all([
+      kit.api('/courses?per_page=50'),
+      kit.api('/rooms?per_page=48'),
+      kit.api('/allocations?per_page=200').catch(() => ({ data: [] })),
+      kit.api('/dashboard').catch(() => ({ data: {} })),
+      kit.api('/reports/conflicts').catch(() => ({ data: [] })),
+    ]);
+    courses = kit.listOf(courseRes.data);
+    rooms = kit.listOf(roomRes.data);
+    allocations = kit.listOf(allocRes.data);
+    dash = dashRes.data || {};
+    conflicts = Array.isArray(conflictRes.data) ? conflictRes.data : kit.listOf(conflictRes.data);
+  } catch (error) {
+    return page('Dashboard', 'Overview', kit.failureNotice(error, 'Dashboard'));
+  }
+  const booked = {};
+  allocations.forEach((row) => {
+    const id = row.room?.id;
+    if (id) booked[id] = (booked[id] || 0) + 1;
+  });
+  const available = rooms.filter((room) => room.status === 'available' && room.is_bookable !== false).length;
+  const courseRows = courses.slice(0, 8).map((course) => `<tr>
+      <td>${codeMark(course.code)}<span class="code-text">${kit.esc(course.code)}</span></td>
+      <td>${kit.esc(course.title)}</td>
+      <td><span class="soft-pill">${kit.esc(deptName(course.department_id))}</span></td>
+    </tr>`).join('');
+  const hallRows = rooms.slice(0, 8).map((room) => `<tr>
+      <td>${kit.esc(room.code)}</td>
+      <td>${kit.esc(room.capacity ?? '—')}</td>
+      <td><span class="soft-pill">${kit.esc(booked[room.id] || 0)} session${(booked[room.id] || 0) === 1 ? '' : 's'}</span></td>
+    </tr>`).join('');
+  return {
+    cachedAt: null,
+    title: 'Dashboard',
+    html: `<header class="page-head">
+        <div>
+          <h1>Dashboard</h1>
+          <p class="muted">Overview of timetable allocation status</p>
+        </div>
+      </header>
+      <div class="stats">
+        <article class="stat"><small>Total Courses</small><span>${kit.esc(courses.length)}</span><em>Active this semester</em></article>
+        <article class="stat"><small>Lecture Halls</small><span>${kit.esc(rooms.length)}</span><em>${kit.esc(available)} available</em></article>
+        <article class="stat"><small>Allocations</small><span>${kit.esc(allocations.length || dash.proposed_allocations || 0)}</span><em>Scheduled sessions</em></article>
+        <article class="stat"><small>Conflicts</small><span class="${conflicts.length ? 'is-alert' : ''}">${kit.esc(conflicts.length || dash.open_conflicts || 0)}</span><em>Detected issues</em></article>
+      </div>
+      <div class="split-panels">
+        <section class="panel">
+          <h2>${kit.icon('courses')} Courses This Semester</h2>
+          <div class="table-wrap"><table class="data-table">
+            <thead><tr><th>Code</th><th>Title</th><th>Dept</th></tr></thead>
+            <tbody>${courseRows || `<tr><td colspan="3">No courses yet.</td></tr>`}</tbody>
+          </table></div>
+        </section>
+        <section class="panel">
+          <h2>${kit.icon('rooms')} Hall Utilisation</h2>
+          <div class="table-wrap"><table class="data-table">
+            <thead><tr><th>Hall</th><th>Capacity</th><th>Sessions</th></tr></thead>
+            <tbody>${hallRows || `<tr><td colspan="3">No halls yet.</td></tr>`}</tbody>
+          </table></div>
+        </section>
+      </div>`,
+  };
 }
 
 async function usersView() {
   let body = '';
   try {
     const result = await kit.api('/users?per_page=50');
-    const rows = kit.listOf(result.data).map((user) => {
-      const id = user.user_id || user.id;
-      const manage = can('user:manage') ? `<form class="stack" data-user-id="${kit.esc(id)}">
-          <div class="field"><label class="field-label" for="role-${kit.esc(id)}">Role</label>
-            <select id="role-${kit.esc(id)}" name="role">${['student', 'lecturer', 'admin'].map((role) => `<option value="${role}"${user.role === role ? ' selected' : ''}>${role}</option>`).join('')}</select>
-          </div>
-          <div class="field"><label class="field-label" for="status-${kit.esc(id)}">Status</label>
-            <select id="status-${kit.esc(id)}" name="status">${['pending', 'active', 'suspended'].map((status) => `<option value="${status}"${user.status === status ? ' selected' : ''}>${status}</option>`).join('')}</select>
-          </div>
-          <button class="btn btn-primary" type="submit">Update account</button>
-          <button class="btn btn-ghost" type="button" data-archive="${kit.esc(id)}">Archive</button>
-        </form>` : '';
-      return `<article class="record">
-      <header><strong>${kit.esc(user.display_name || `${user.first_name || ''} ${user.last_name || ''}`)}</strong>${kit.chip(user.role)}</header>
-      <p>${kit.esc(user.email || '')} · ${kit.esc(user.status || '')} · id ${kit.esc(id)}</p>
-      ${manage}
-    </article>`;
-    }).join('');
-    body = rows || kit.notice('No accounts', 'People you register will appear here.');
+    const lecturers = kit.listOf(result.data).filter((user) => user.role === 'lecturer' || user.role === 'admin');
+    const shown = lecturers.length ? lecturers : kit.listOf(result.data);
+    const table = shown.length
+      ? `<div class="panel"><div class="table-wrap"><table class="data-table">
+          <thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Email</th><th></th></tr></thead>
+          <tbody>${shown.map((user) => {
+            const id = user.user_id || user.id;
+            const name = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim();
+            const manage = can('user:manage') ? `<form class="inline-form" data-user-id="${kit.esc(id)}">
+                <select name="role" aria-label="Role">${['student', 'lecturer', 'admin'].map((option) => `<option value="${option}"${user.role === option ? ' selected' : ''}>${option}</option>`).join('')}</select>
+                <select name="status" aria-label="Status">${['pending', 'active', 'suspended'].map((status) => `<option value="${status}"${user.status === status ? ' selected' : ''}>${status}</option>`).join('')}</select>
+                <button class="btn btn-ghost" type="submit">Save</button>
+              </form>` : '';
+            return `<tr>
+              <td><span class="who-cell">${codeMark(name)}<span>${kit.esc(name)}</span></span></td>
+              <td>${kit.esc(kit.pretty(user.role))}</td>
+              <td>${kit.esc(deptName(user.department_id))}</td>
+              <td>${kit.esc(user.email || '')}</td>
+              <td>${manage}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table></div></div>`
+      : kit.notice('No accounts', 'People you register will appear here.');
+    body = table;
   } catch (error) {
-    body = kit.failureNotice(error, 'People');
+    body = kit.failureNotice(error, 'Lecturers');
   }
-  const form = can('user:manage') ? `<form id="user-form" class="stack">
+  const form = can('user:manage') ? `<form id="user-form" class="stack panel-form">
       <h2>Register someone</h2>
       <div class="alert" data-error hidden role="alert"></div>
       <div class="field"><label class="field-label" for="user-email">Email</label><input id="user-email" name="email" type="email" required></div>
@@ -430,15 +571,27 @@ async function usersView() {
       <p class="muted">The new account is active. They choose a password through forgot password.</p>
       <button class="btn btn-primary" type="submit">Create account</button>
     </form>` : '';
-  return page('People', 'Accounts', `${form}<div class="record-list">${body}</div>`);
+  return page('Lecturers', 'Teaching staff', `${body}${form}`);
 }
 
 async function coursesView() {
   let body = '';
   try {
     const result = await kit.api('/courses?per_page=50');
-    body = kit.listOf(result.data).map((course) => `<article class="record"><header><span class="code">${kit.esc(course.code)}</span></header><h2>${kit.esc(course.title)}</h2><p>${kit.esc((course.features || []).map((feature) => kit.pretty(feature)).join(' · ') || 'No required features')} · ${kit.esc(course.meetings_per_week)} ${Number(course.meetings_per_week) === 1 ? 'meeting' : 'meetings'} a week</p>${can('course:manage') ? `<button class="btn btn-ghost" type="button" data-drop-course="${kit.esc(course.id)}">Remove course</button>` : ''}</article>`).join('')
-      || kit.notice('No courses', 'Add the first course for this department.');
+    const rows = kit.listOf(result.data);
+    body = rows.length
+      ? `<div class="panel"><h2>${kit.icon('courses')} Course Registry</h2><div class="table-wrap"><table class="data-table">
+          <thead><tr><th>Code</th><th>Course Title</th><th>Department</th><th>Credits</th><th>Status</th><th></th></tr></thead>
+          <tbody>${rows.map((course) => `<tr>
+            <td>${codeMark(course.code)}<span class="code-text">${kit.esc(course.code)}</span></td>
+            <td>${kit.esc(course.title)}</td>
+            <td>${kit.esc(deptName(course.department_id))}</td>
+            <td>${kit.esc(course.credit_hours ?? '—')} cr</td>
+            <td><span class="status-dot${course.is_active === false ? '' : ' is-on'}">${course.is_active === false ? 'Inactive' : 'Active'}</span></td>
+            <td>${can('course:manage') ? `<button class="btn btn-ghost" type="button" data-drop-course="${kit.esc(course.id)}">Remove</button>` : ''}</td>
+          </tr>`).join('')}</tbody>
+        </table></div></div>`
+      : kit.notice('No courses', 'Add the first course for this department.');
   } catch (error) {
     body = kit.failureNotice(error, 'Courses');
   }
@@ -476,7 +629,7 @@ async function coursesView() {
       <div class="field"><label class="field-label" for="edit-course-features">Required features</label><input id="edit-course-features" name="features" placeholder="projector, lab"></div>
       <button class="btn btn-primary" type="submit">Update course</button>
     </form>` : '';
-  return page('Courses', 'Catalogue', `${form}<div class="record-list">${body}</div>`);
+  return page('Courses', 'Catalogue', `${body}${form}`);
 }
 
 async function calendarView() {
@@ -539,9 +692,9 @@ async function generateView() {
     const semesters = Array.isArray(result.data) ? result.data : [];
     options = semesters.map((semester) => `<option value="${kit.esc(semester.id)}" data-department="${kit.esc(semester.department_id ?? '')}">${kit.esc(semester.name)}</option>`).join('');
   } catch (error) {
-    return page('Allocate', 'Engine', kit.failureNotice(error, 'Semesters'));
+    return page('Allocate Schedule', 'Generate or repair the published week', kit.failureNotice(error, 'Semesters'));
   }
-  return page('Allocate', 'Engine', `<form id="generate-form" class="stack">
+  return page('Allocate Schedule', 'Generate or repair the published week', `<form id="generate-form" class="stack">
       <div class="alert" data-error hidden role="alert"></div>
       <div class="field"><label class="field-label" for="gen-semester">Semester</label><select id="gen-semester" name="semester_id" required>${options}</select></div>
       <div class="field"><label class="field-label" for="gen-mode">Mode</label><select id="gen-mode" name="mode"><option value="full">Full timetable</option><option value="repair">Repair</option></select></div>
@@ -585,7 +738,7 @@ async function reportsView() {
   }
   const tabs = ['dashboard', 'utilisation', 'peak', 'conflicts', 'load'].map((name) => `<a data-nav href="/reports?report=${name}"${name === report ? ' aria-current="page"' : ''}>${kit.esc(name)}</a>`).join('');
   const exportKind = report === 'dashboard' || report === 'peak' ? (report === 'peak' ? 'peak' : 'utilisation') : (report === 'load' ? 'lecturer-load' : report);
-  return page('Reports', 'Department', `<nav class="tools">${tabs}<button class="btn btn-ghost" type="button" data-report-csv="${kit.esc(exportKind)}">Download CSV</button></nav>${body}`);
+  return page(report === 'conflicts' ? 'Conflict Report' : 'Reports', 'Detected clashes and department usage', `<nav class="tools">${tabs}<button class="btn btn-ghost" type="button" data-report-csv="${kit.esc(exportKind)}">Download CSV</button></nav>${body}`);
 }
 
 async function auditView() {

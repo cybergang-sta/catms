@@ -1,4 +1,4 @@
-import { extraView, failureText, handleClick, handleSubmit, install, isExtra, isPublic, profileExtras, publicHtml, roomAdminForm, sidebarLinks } from './manage.js?v=12';
+import { extraView, failureText, handleClick, handleSubmit, homePath, install, isExtra, isPublic, mobileTabs, navGroups, profileExtras, publicHtml, roomAdminForm } from './manage.js?v=13';
 
 const API = '/api/v1';
 
@@ -200,11 +200,17 @@ function icon(name) {
     today: '<circle cx="12" cy="12" r="4"/><path d="M12 3v1.5M12 19.5V21M4.9 4.9l1.1 1.1M18 18l1.1 1.1M3 12h1.5M19.5 12H21M4.9 19.1L6 18M18 6l1.1-1.1"/>',
     week: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/>',
     term: '<path d="M4 7h16M4 12h16M4 17h10"/>',
-    rooms: '<path d="M5 20V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M9 20v-5h6v5M9 8h.01M15 8h.01M9 12h.01M15 12h.01"/>',
+    rooms: '<path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-8h6v8"/>',
     alerts: '<path d="M6 16V10a6 6 0 1 1 12 0v6l1.5 2H4.5L6 16z"/><path d="M10 19a2 2 0 0 0 4 0"/>',
+    manage: '<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="3" rx="1"/><rect x="13" y="9" width="7" height="2" rx="1"/><rect x="4" y="13" width="16" height="7" rx="1.5"/>',
+    allocate: '<path d="M12 5v14M5 12h14"/>',
+    courses: '<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8M8 13h5"/>',
+    lecturers: '<circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="9" r="2.4"/><path d="M15 19a4.2 4.2 0 0 1 6-3.5"/>',
+    conflicts: '<path d="M12 4l9 16H3L12 4z"/><path d="M12 10v5M12 17.5h.01"/>',
+    profile: '<circle cx="12" cy="8" r="3.5"/><path d="M5 19a7 7 0 0 1 14 0"/>',
+    cap: '<path d="M3 10l9-5 9 5-9 5-9-5z"/><path d="M7 12.2V16c0 1.4 2.2 2.6 5 2.6s5-1.2 5-2.6v-3.8"/>',
     prev: '<path d="M15 6 L9 12 L15 18"/>',
     next: '<path d="M9 6 L15 12 L9 18"/>',
-    manage: '<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/>',
     availability: '<circle cx="12" cy="12" r="8"/><path d="M12 8v5l3 2"/>',
     calendar: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14h3M14 14h2M8 17h2"/>',
     reports: '<path d="M5 19V10M12 19V5M19 19v-7"/>',
@@ -382,6 +388,7 @@ function fromDetail(entry) {
 function sessionButton(card, index, compact) {
   const tone = `swatch-${swatch(card.code)}`;
   const when = `${clock(card.start)}–${clock(card.end)}`;
+  const lastName = String(card.lecturer || '').split(' ').filter(Boolean).pop() || '';
   return `<button type="button" class="session ${tone}" data-open="${index}">
     ${compact ? '' : `<span class="when">${esc(when)}</span>`}
     <span>
@@ -389,8 +396,8 @@ function sessionButton(card, index, compact) {
         <span class="code">${esc(card.code)}</span>
         ${compact ? '' : chip(card.status)}
       </span>
-      <strong>${esc(card.title)}</strong>
-      <span class="meta">${esc(card.roomCode)} · ${esc(card.room)}${card.lecturer ? ` · ${esc(card.lecturer)}` : ''}</span>
+      ${compact ? '' : `<strong>${esc(card.title)}</strong>`}
+      <span class="meta">${compact ? `${esc(card.roomCode || card.room || '')}${lastName ? ` · ${esc(lastName)}` : ''}` : `${esc(card.roomCode)} · ${esc(card.room)}${card.lecturer ? ` · ${esc(card.lecturer)}` : ''}`}</span>
     </span>
   </button>`;
 }
@@ -421,33 +428,29 @@ function skeleton() {
 function authHtml() {
   return `<div class="auth">
     <section class="auth-story">
-      <a class="brand" href="/login" data-nav><img src="/assets/img/mark.svg" alt="" width="36" height="36"><span>CATMS</span></a>
       <div class="auth-story-body">
-        <p class="eyebrow">University of Technology and Applied Science</p>
-        <h1>The week, without the clash.</h1>
-        <p class="lede">One timetable for students, lecturers, and the people who allocate the rooms.</p>
+        <span class="cap-mark" aria-hidden="true">${icon('cap')}</span>
+        <h1>UTAS Timetable System</h1>
+        <p class="lede">University of Technology and Applied Science — Intelligent Lecture Scheduling Platform</p>
         <ul class="points">
-          <li><strong>No double bookings.</strong> A room is free, or it is not.</li>
-          <li><strong>Your schedule only.</strong> Students see their cohort. Lecturers see their classes.</li>
-          <li><strong>Changes stay visible.</strong> A moved class is marked, not quietly rewritten.</li>
+          <li>${icon('conflicts')} Smart Conflict Detection</li>
+          <li>${icon('rooms')} Hall Availability Tracking</li>
+          <li>${icon('lecturers')} Lecturer Schedule Management</li>
+          <li>${icon('manage')} Real-time Dashboard</li>
         </ul>
-        <div class="preview" aria-hidden="true">
-          <div class="preview-top"><span>Monday</span><span>Week 4</span></div>
-          <div class="preview-row"><span>08:00</span><div><strong>CS201</strong><small>Lab 1 · Block A</small></div></div>
-          <div class="preview-row"><span>11:00</span><div><strong>IS304</strong><small>Lecture Hall 2</small></div></div>
-          <div class="preview-row"><span>14:00</span><div><strong>Free</strong><small>No class scheduled</small></div></div>
-        </div>
       </div>
-      <p class="auth-foot">Classroom allocation and timetable management</p>
     </section>
     <section class="auth-panel" id="main">
       <div class="auth-card">
-        <h2>Sign in</h2>
-        <p class="muted">Use the university account you were given.</p>
+        <h2>Welcome back</h2>
+        <p class="muted">Sign in to access the timetable management system</p>
+        <div class="demo-row" role="group" aria-label="Demo roles">
+          ${DEMOS.map((account, index) => `<button type="button" class="demo${index === 0 ? ' is-active' : ''}" data-demo="${index}">${icon(index === 0 ? 'manage' : index === 1 ? 'lecturers' : 'profile')}${esc(account.role.replace('Administrator', 'Admin'))}</button>`).join('')}
+        </div>
         <form id="login-form" novalidate>
           <div class="alert" data-error hidden role="alert"></div>
           <div class="field">
-            <div class="field-label"><label for="email">Email</label></div>
+            <div class="field-label"><label for="email">Email Address</label></div>
             <input id="email" name="email" type="email" autocomplete="username" inputmode="email" spellcheck="false" required>
           </div>
           <div class="field">
@@ -457,47 +460,47 @@ function authHtml() {
             </div>
             <input id="password" name="password" type="password" autocomplete="current-password" required>
           </div>
-          <button class="btn btn-primary" type="submit">Sign in</button>
+          <button class="btn btn-primary" type="submit">Sign In</button>
         </form>
-        <p class="muted"><a data-nav href="/register">Create an account</a> · <a data-nav href="/forgot">Forgot password</a></p>
-        <div class="demos">
-          <p>Local demo accounts</p>
-          <div class="demo-row">
-            ${DEMOS.map((account, index) => `<button type="button" class="demo" data-demo="${index}">${esc(account.role)}</button>`).join('')}
-          </div>
-        </div>
+        <p class="muted auth-links">Don’t have an account? <a data-nav href="/register">Register here</a> · <a data-nav href="/forgot">Forgot password</a></p>
       </div>
     </section>
   </div>`;
 }
 
+function linkItem(item, className) {
+  const badge = item.id === 'alerts' ? '<span class="badge" data-badge hidden></span>' : '';
+  return `<a class="${className}" data-nav data-item href="${item.href}">${icon(item.id)}${esc(item.label)}${badge}</a>`;
+}
+
 function navLinks(className) {
-  const items = className === 'tab' ? NAV : NAV.concat(sidebarLinks());
-  return items.map((item) => `<a class="${className}" data-nav data-item href="${item.href}">${icon(item.id)}${esc(item.label)}${item.id === 'alerts' ? '<span class="badge" data-badge hidden></span>' : ''}</a>`).join('');
+  if (className === 'tab') {
+    return mobileTabs().map((item) => linkItem(item, className)).join('');
+  }
+  return navGroups().map((group) => `<div class="nav-group"><p class="nav-label">${esc(group.label)}</p>${group.items.map((item) => linkItem(item, className)).join('')}</div>`).join('');
 }
 
 function shellHtml() {
   const user = session()?.user || {};
   const must = session()?.must_change_password;
+  const home = homePath();
   return `<div class="shell">
+    <header class="topbar">
+      <a class="brand" href="${home}" data-nav>
+        <span class="brand-mark" aria-hidden="true">${icon('cap')}</span>
+        <span class="brand-copy"><strong>UTAS Timetable System</strong><small>University of Technology &amp; Applied Science</small></span>
+      </a>
+      <div class="topbar-spacer"></div>
+      <a class="user-chip" href="/profile" data-nav>
+        <span class="avatar">${esc(initials(user))}</span>
+        <span class="user-chip-name">${esc(user.display_name || roleLabel(user.role))}</span>
+      </a>
+      <button class="sign-out" type="button" data-logout>Sign Out</button>
+    </header>
     <aside class="sidebar">
-      <a class="brand" href="/today" data-nav><img src="/assets/img/mark.svg" alt="" width="36" height="36"><span>CATMS</span></a>
       <nav aria-label="Primary">${navLinks('nav-link')}</nav>
-      <div class="account">
-        <a class="user-card" href="/profile" data-nav>
-          <span class="avatar">${esc(initials(user))}</span>
-          <span><strong>${esc(user.display_name || 'Account')}</strong><small>${esc(roleLabel(user.role))}</small></span>
-        </a>
-        <button class="sign-out" type="button" data-logout>Sign out</button>
-      </div>
     </aside>
     <div class="workspace">
-      <header class="topbar">
-        <a class="brand brand-mobile" href="/today" data-nav><img src="/assets/img/mark.svg" alt="" width="32" height="32"><span>CATMS</span></a>
-        <div class="topbar-spacer"></div>
-        <button class="sign-out" type="button" data-logout>Sign out</button>
-        <a class="avatar-btn" href="/profile" data-nav aria-label="Your profile">${esc(initials(user))}</a>
-      </header>
       <div id="sync-note" class="sync-note" hidden role="status"></div>
       <div id="account-note" class="account-note"${must ? '' : ' hidden'}><a data-nav href="/profile">This account must change its password. Open your profile to set a new one.</a></div>
       <main id="main"></main>
@@ -541,7 +544,6 @@ async function todayView() {
     title: onToday ? 'Today' : 'Day',
     html: `<header class="page-head">
       <div>
-        <p class="eyebrow">${onToday ? 'Today' : 'Day'}</p>
         <h1>${esc(title)}</h1>
         <p class="muted">${esc(onToday ? longDate(current) : data.label || current)} · ${esc(scopeLine(user.role))}</p>
       </div>
@@ -580,12 +582,11 @@ async function weekView() {
 
   return {
     cachedAt: result.cachedAt,
-    title: 'Week',
+    title: 'Weekly Timetable',
     html: `<header class="page-head">
       <div>
-        <p class="eyebrow">${esc(weekMeta.label || 'Week')}</p>
-        <h1>${esc(weekMeta.start_date ? spanLabel(weekMeta.start_date, weekMeta.end_date) : 'This week')}</h1>
-        <p class="muted">${esc(data.semester?.name || '')}${data.semester?.status ? ` · ${esc(pretty(data.semester.status))}` : ''}</p>
+        <h1>Weekly Timetable</h1>
+        <p class="muted">${esc(weekMeta.start_date ? spanLabel(weekMeta.start_date, weekMeta.end_date) : 'Full semester schedule')} · ${esc(data.semester?.name || '')}</p>
       </div>
       ${pager(
         weekMeta.can_prev ? `/week?week=${weekMeta.number - 1}` : '',
@@ -616,7 +617,10 @@ function weekBoard(days, lookup) {
     }).join('');
     return `<div class="board-time">${esc(clock(time))}</div>${cells}`;
   }).join('');
-  return `<div class="board days-${days.length}" aria-label="Week timetable"><div class="board-corner"></div>${head}${rows}</div>`;
+  return `<section class="panel grid-panel">
+    <div class="grid-toolbar"><h2>${icon('week')} Weekly Schedule Grid</h2><span class="legend"><i class="dot-it"></i> IT <i class="dot-cs"></i> CS</span></div>
+    <div class="board days-${days.length}" aria-label="Week timetable"><div class="board-corner">Time</div>${head}${rows}</div>
+  </section>`;
 }
 
 function dayList(days, lookup) {
@@ -658,7 +662,6 @@ async function termView() {
     title: 'Term',
     html: `<header class="page-head">
       <div>
-        <p class="eyebrow">Term</p>
         <h1>${esc(data.semester?.name || 'Semester')}</h1>
         <p class="muted">${esc(data.total ?? 0)} published sessions${data.semester?.academic_year ? ` · ${esc(data.semester.academic_year)}` : ''}</p>
       </div>
@@ -687,10 +690,32 @@ async function roomsView() {
     if (q) query.set('q', q);
     if (params.get('min_capacity')) query.set('min_capacity', params.get('min_capacity'));
     if (params.get('features')) query.set('features', params.get('features'));
-    const result = await api(`/rooms?${query.toString()}`);
+    const [result, allocRes] = await Promise.all([
+      api(`/rooms?${query.toString()}`),
+      api('/allocations?per_page=200').catch(() => ({ data: [] })),
+    ]);
     const rooms = listOf(result.data);
+    const booked = {};
+    listOf(allocRes.data).forEach((row) => {
+      const id = row.room?.id;
+      if (id) booked[id] = (booked[id] || 0) + 1;
+    });
     body = rooms.length
-      ? `<div class="room-grid">${rooms.map(roomCard).join('')}</div>`
+      ? `<div class="panel"><h2>${icon('rooms')} Hall Directory</h2><div class="table-wrap"><table class="data-table">
+          <thead><tr><th>Hall</th><th>Building</th><th>Capacity</th><th>Facilities</th><th>Sessions Booked</th><th>Status</th></tr></thead>
+          <tbody>${rooms.map((room) => {
+            const count = booked[room.id] || 0;
+            const on = room.status === 'available' || !room.status;
+            return `<tr>
+              <td>${esc(room.code)}</td>
+              <td>${esc(room.building || 'Campus')}</td>
+              <td>${esc(room.capacity ?? '—')} seats</td>
+              <td>${esc((room.features || []).map(pretty).join(', ') || '—')}</td>
+              <td><span class="soft-pill">${esc(count)}</span></td>
+              <td><span class="status-dot${on ? ' is-on' : ''}">${esc(pretty(room.status || 'available'))}</span></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table></div></div>`
       : notice(q ? 'No rooms match' : 'No rooms yet', q ? 'Try a building, a code, or part of the name.' : 'Rooms will appear here once they are added.');
   } catch (error) {
     body = failureNotice(error, 'Room search');
@@ -698,16 +723,16 @@ async function roomsView() {
 
   return {
     cachedAt: null,
-    title: 'Rooms',
-    html: `<header class="page-head"><div><p class="eyebrow">Classrooms</p><h1>Rooms</h1><p class="muted">Find a room by name, building, or code.</p></div></header>
+    title: 'Lecture Halls',
+    html: `<header class="page-head"><div><h1>Lecture Halls</h1><p class="muted">Available rooms and capacity information</p></div></header>
       <form class="search" data-search="rooms" role="search">
         <input type="search" name="q" value="${esc(q)}" placeholder="Lab 1, Block A, lecture hall" aria-label="Search rooms">
         <input name="min_capacity" type="number" min="1" value="${esc(params.get('min_capacity') || '')}" placeholder="Min seats" aria-label="Minimum capacity">
         <input name="features" value="${esc(params.get('features') || '')}" placeholder="projector, lab" aria-label="Required features">
         <button class="btn btn-primary" type="submit">Search</button>
       </form>
-      ${roomAdminForm()}
-      ${body}`,
+      ${body}
+      ${roomAdminForm()}`,
   };
 }
 
@@ -740,7 +765,7 @@ async function alertsView() {
   return {
     cachedAt: null,
     title: 'Alerts',
-    html: `<header class="page-head"><div><p class="eyebrow">Inbox</p><h1>Alerts</h1><p class="muted">Changes to the classes that involve you.</p></div><button class="btn btn-ghost" type="button" data-read-all>Mark all read</button></header>${body}`,
+    html: `<header class="page-head"><div><h1>Alerts</h1><p class="muted">Changes to the classes that involve you.</p></div><button class="btn btn-ghost" type="button" data-read-all>Mark all read</button></header>${body}`,
   };
 }
 
@@ -789,7 +814,7 @@ async function profileView() {
   return {
     cachedAt: null,
     title: 'Profile',
-    html: `<header class="page-head"><div><p class="eyebrow">Account</p><h1>Profile</h1></div></header>
+    html: `<header class="page-head"><div><h1>My Profile</h1><p class="muted">Account details for this university login</p></div></header>
       <section class="profile-card">
         <div class="who">
           <span class="avatar">${esc(initials(user))}</span>
@@ -901,9 +926,12 @@ function go(href) {
 }
 
 function setActive(path) {
+  const here = `${location.pathname}${location.search || ''}`;
   document.querySelectorAll('[data-item]').forEach((link) => {
-    const target = (link.getAttribute('href') || '').split('?')[0];
-    if (target === path) {
+    const href = link.getAttribute('href') || '';
+    const target = href.split('?')[0];
+    const match = href.includes('?') ? here === href || (path === target && here.startsWith(href)) : path === target;
+    if (match) {
       link.setAttribute('aria-current', 'page');
     } else {
       link.removeAttribute('aria-current');
@@ -956,7 +984,7 @@ async function signIn(form) {
     } catch {
       /* The login payload already has the profile. */
     }
-    go('/today');
+    go(homePath());
   } catch (reason) {
     error.hidden = false;
     error.textContent = failureText(reason, 'Sign-in failed.');
@@ -1042,17 +1070,27 @@ async function render() {
     path = '/login';
   }
   if (authed && (path === '/' || path === '/login')) {
-    history.replaceState({}, '', '/today');
-    path = '/today';
+    const home = homePath();
+    history.replaceState({}, '', home);
+    path = home;
   }
   if (authed && !known(path)) {
-    history.replaceState({}, '', '/today');
-    path = '/today';
+    const home = homePath();
+    history.replaceState({}, '', home);
+    path = home;
   }
 
   if (!authed) {
-    document.title = path === '/login' ? 'Sign in · CATMS' : 'CATMS';
+    document.title = path === '/login' ? 'Sign in · UTAS Timetable' : 'UTAS Timetable';
     root.innerHTML = path === '/login' ? authHtml() : publicHtml(path);
+    if (path === '/login') {
+      const first = DEMOS[0];
+      const form = document.getElementById('login-form');
+      if (form && first) {
+        form.elements.email.value = first.email;
+        form.elements.password.value = first.password;
+      }
+    }
     return;
   }
 
@@ -1074,7 +1112,7 @@ async function render() {
     if (token !== state.token) {
       return;
     }
-    document.title = `${view.title} · CATMS`;
+    document.title = `${view.title} · UTAS Timetable`;
     main.innerHTML = view.html;
     showSync(view.cachedAt);
   } catch (error) {
@@ -1086,7 +1124,7 @@ async function render() {
       render();
       return;
     }
-    document.title = 'CATMS';
+    document.title = 'UTAS Timetable';
     main.innerHTML = failureNotice(error, 'This view');
     showSync(null);
   }
@@ -1125,6 +1163,9 @@ function onClick(event) {
     }
     form.elements.email.value = account.email;
     form.elements.password.value = account.password;
+    document.querySelectorAll('[data-demo]').forEach((button) => {
+      button.classList.toggle('is-active', button === demo);
+    });
     form.elements.email.focus();
     return;
   }
@@ -1233,7 +1274,7 @@ function onKey(event) {
 }
 
 install({
-  api, esc, go, notice, failureNotice, chip, pretty, session, saveSession, toast, listOf, render,
+  api, esc, go, notice, failureNotice, chip, pretty, session, saveSession, toast, listOf, render, icon,
 });
 
 root.addEventListener('click', onClick);
