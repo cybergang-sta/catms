@@ -62,7 +62,9 @@ USE `utas_catms`;
 INSERT INTO `departments` (`code`, `name`, `faculty`, `is_active`) VALUES
   ('CS', 'Computer Science',           'Faculty of Computing and Information Sciences', 1),
   ('IT', 'Information Technology',    'Faculty of Computing and Information Sciences', 1),
-  ('CE', 'Computer Engineering',       'Faculty of Engineering',                        1)
+  ('CE', 'Computer Engineering',       'Faculty of Engineering',                        1),
+  ('EE', 'Electrical Engineering',     'Faculty of Engineering',                        1),
+  ('IS', 'Information Systems',        'Faculty of Computing and Information Sciences', 1)
 ON DUPLICATE KEY UPDATE
   `name`     = VALUES(`name`),
   `faculty`  = VALUES(`faculty`),
@@ -301,6 +303,48 @@ SELECT d.`id`, s.`name`, s.`academic_year`, s.`start_date`, s.`end_date`,
            '2027-02-08', '2027-05-21',
            '2027-06-07', '2027-06-25',
            15, 'planning'
+    UNION ALL
+    SELECT 'CE', '2026-A', '2026/2027',
+           '2026-09-01', '2027-01-30',
+           '2026-08-10', '2026-08-28',
+           '2026-09-07', '2026-12-18',
+           '2027-01-04', '2027-01-23',
+           15, 'active'
+    UNION ALL
+    SELECT 'CE', '2027-A', '2027/2028',
+           '2027-02-01', '2027-06-30',
+           '2027-01-11', '2027-01-29',
+           '2027-02-08', '2027-05-21',
+           '2027-06-07', '2027-06-25',
+           15, 'planning'
+    UNION ALL
+    SELECT 'EE', '2026-A', '2026/2027',
+           '2026-09-01', '2027-01-30',
+           '2026-08-10', '2026-08-28',
+           '2026-09-07', '2026-12-18',
+           '2027-01-04', '2027-01-23',
+           15, 'active'
+    UNION ALL
+    SELECT 'EE', '2027-A', '2027/2028',
+           '2027-02-01', '2027-06-30',
+           '2027-01-11', '2027-01-29',
+           '2027-02-08', '2027-05-21',
+           '2027-06-07', '2027-06-25',
+           15, 'planning'
+    UNION ALL
+    SELECT 'IS', '2026-A', '2026/2027',
+           '2026-09-01', '2027-01-30',
+           '2026-08-10', '2026-08-28',
+           '2026-09-07', '2026-12-18',
+           '2027-01-04', '2027-01-23',
+           15, 'active'
+    UNION ALL
+    SELECT 'IS', '2027-A', '2027/2028',
+           '2027-02-01', '2027-06-30',
+           '2027-01-11', '2027-01-29',
+           '2027-02-08', '2027-05-21',
+           '2027-06-07', '2027-06-25',
+           15, 'planning'
   ) s ON s.`code` = d.`code`
 ON DUPLICATE KEY UPDATE
   `academic_year`      = VALUES(`academic_year`),
@@ -396,6 +440,46 @@ SELECT d.`id`, c.`code`, c.`title`, c.`description`, c.`credit_hours`, c.`meetin
     SELECT 'IT', 'IT405', 'Information Security',
            'Threats, controls, cryptography and security management',
            3.0, 1, 120, 400, 'Block C'
+    UNION ALL
+    SELECT 'CS', 'CS203', 'Object-Oriented Programming',
+           'Classes, inheritance, interfaces and object design',
+           3.0, 2, 120, 200, 'Block B'
+    UNION ALL
+    SELECT 'CS', 'CS303', 'Artificial Intelligence',
+           'Search, knowledge representation and introductory machine learning',
+           3.0, 1, 120, 300, 'Block C'
+    UNION ALL
+    SELECT 'IT', 'IT206', 'Database Administration',
+           'Installation, backup, recovery and operational database management',
+           3.0, 1, 120, 200, 'Block E'
+    UNION ALL
+    SELECT 'CE', 'CE101', 'Circuit Theory',
+           'Resistive networks, Kirchhoff laws and first-order transients',
+           3.0, 2, 120, 100, 'Block B'
+    UNION ALL
+    SELECT 'CE', 'CE201', 'Digital Systems',
+           'Combinational logic, sequential circuits and hardware description',
+           3.0, 2, 120, 200, 'Block C'
+    UNION ALL
+    SELECT 'CE', 'CE301', 'Embedded Systems',
+           'Microcontrollers, interfacing and real-time firmware',
+           3.0, 1, 120, 300, 'Block E'
+    UNION ALL
+    SELECT 'EE', 'EE101', 'Electrical Principles',
+           'Voltage, current, power and introductory electromagnetic concepts',
+           3.0, 2, 120, 100, 'Block B'
+    UNION ALL
+    SELECT 'EE', 'EE201', 'Power Systems',
+           'Generation, transmission and distribution of electrical energy',
+           3.0, 1, 120, 200, 'Block C'
+    UNION ALL
+    SELECT 'IS', 'IS101', 'Introduction to Information Systems',
+           'Organisations, data, processes and the role of information systems',
+           3.0, 2, 120, 100, 'Block B'
+    UNION ALL
+    SELECT 'IS', 'IS201', 'Business Process Modelling',
+           'Process discovery, notation and improvement in enterprise systems',
+           3.0, 2, 120, 200, 'Block B'
   ) c ON c.`dept` = d.`code`
 ON DUPLICATE KEY UPDATE
   `title`              = VALUES(`title`),
@@ -419,9 +503,12 @@ INSERT INTO `course_feature_requirements` (`course_id`, `feature_id`, `mandatory
 SELECT c.`id`, f.`id`, 1
   FROM `courses` c
   JOIN `room_features` f
- WHERE (c.`code` IN ('CS101', 'CS102', 'CS201', 'CS202', 'CS302', 'CS401', 'IT105', 'IT205', 'IT405') AND f.`code` = 'projector')
-    OR (c.`code` = 'CS301' AND f.`code` IN ('projector', 'lab_bench'))
-    OR (c.`code` = 'IT305' AND f.`code` IN ('projector', 'lab_bench'))
+ WHERE (c.`code` IN (
+            'CS101', 'CS102', 'CS201', 'CS202', 'CS203', 'CS302', 'CS303', 'CS401',
+            'IT105', 'IT205', 'IT206', 'IT405',
+            'CE101', 'CE201', 'EE101', 'EE201', 'IS101', 'IS201'
+          ) AND f.`code` = 'projector')
+    OR (c.`code` IN ('CS301', 'IT305', 'CE301') AND f.`code` IN ('projector', 'lab_bench'))
 ON DUPLICATE KEY UPDATE `mandatory` = VALUES(`mandatory`);
 
 -- ---------------------------------------------------------------------------
@@ -479,6 +566,16 @@ SELECT d.`id`, c.`id`, s.`id`, CONCAT(c.`code`, '-', g.`group`), g.`enrolled`, g
     UNION ALL SELECT 'CS', 'CS302', 'A',  36,  4
     UNION ALL SELECT 'IT', 'IT205', 'A',  48,  4
     UNION ALL SELECT 'IT', 'IT405', 'A',  32,  3
+    UNION ALL SELECT 'CS', 'CS203', 'A',  50,  5
+    UNION ALL SELECT 'CS', 'CS303', 'A',  38,  4
+    UNION ALL SELECT 'IT', 'IT206', 'A',  42,  4
+    UNION ALL SELECT 'CE', 'CE101', 'A',  70,  6
+    UNION ALL SELECT 'CE', 'CE201', 'A',  52,  5
+    UNION ALL SELECT 'CE', 'CE301', 'A',  36,  4
+    UNION ALL SELECT 'EE', 'EE101', 'A',  64,  6
+    UNION ALL SELECT 'EE', 'EE201', 'A',  46,  4
+    UNION ALL SELECT 'IS', 'IS101', 'A',  78,  7
+    UNION ALL SELECT 'IS', 'IS201', 'A',  48,  4
   ) g ON g.`course` = c.`code` AND g.`dept` = d.`code`
 ON DUPLICATE KEY UPDATE
   `enrolled_count` = VALUES(`enrolled_count`),
@@ -510,12 +607,43 @@ ON DUPLICATE KEY UPDATE
 --    per course on every run.
 -- ---------------------------------------------------------------------------
 
+-- The first seed gave every course to the demo lecturer. Re-seeding now splits
+-- teaching across the campus directory, so drop those leftover defaults first.
+DELETE lca
+  FROM `lecturer_course_assignments` lca
+  JOIN `users` u ON u.`id` = lca.`lecturer_id` AND u.`email` = 'lecturer@utas.edu.gh'
+  JOIN `courses` c ON c.`id` = lca.`course_id`
+ WHERE lca.`cohort_id` IS NULL
+   AND c.`code` NOT IN ('CS101', 'CS102');
+
 INSERT INTO `lecturer_course_assignments` (`lecturer_id`, `course_id`, `cohort_id`, `is_primary`)
 SELECT u.`id`, c.`id`, NULL, 1
   FROM `courses` c
-  JOIN `users` u ON u.`email` = 'lecturer@utas.edu.gh'
- WHERE c.`code` IN ('CS101', 'CS102', 'CS201', 'CS202', 'CS301', 'CS302', 'CS401', 'IT105', 'IT205', 'IT305', 'IT405')
-   AND NOT EXISTS (
+  JOIN (
+    SELECT 'lecturer@utas.edu.gh' AS `email`, 'CS101' AS `code`
+    UNION ALL SELECT 'lecturer@utas.edu.gh', 'CS102'
+    UNION ALL SELECT 'akosua.boateng@utas.edu.gh', 'CS201'
+    UNION ALL SELECT 'akosua.boateng@utas.edu.gh', 'CS202'
+    UNION ALL SELECT 'yaw.asante@utas.edu.gh', 'CS203'
+    UNION ALL SELECT 'yaw.asante@utas.edu.gh', 'CS301'
+    UNION ALL SELECT 'yaw.asante@utas.edu.gh', 'CS302'
+    UNION ALL SELECT 'yaw.asante@utas.edu.gh', 'CS303'
+    UNION ALL SELECT 'yaw.asante@utas.edu.gh', 'CS401'
+    UNION ALL SELECT 'efua.mensah@utas.edu.gh', 'IT105'
+    UNION ALL SELECT 'efua.mensah@utas.edu.gh', 'IT205'
+    UNION ALL SELECT 'kofi.addo@utas.edu.gh', 'IT206'
+    UNION ALL SELECT 'kofi.addo@utas.edu.gh', 'IT305'
+    UNION ALL SELECT 'kofi.addo@utas.edu.gh', 'IT405'
+    UNION ALL SELECT 'nana.amponsah@utas.edu.gh', 'CE101'
+    UNION ALL SELECT 'nana.amponsah@utas.edu.gh', 'CE201'
+    UNION ALL SELECT 'nana.amponsah@utas.edu.gh', 'CE301'
+    UNION ALL SELECT 'abena.sarpong@utas.edu.gh', 'EE101'
+    UNION ALL SELECT 'abena.sarpong@utas.edu.gh', 'EE201'
+    UNION ALL SELECT 'kojo.frimpong@utas.edu.gh', 'IS101'
+    UNION ALL SELECT 'kojo.frimpong@utas.edu.gh', 'IS201'
+  ) m ON m.`code` = c.`code`
+  JOIN `users` u ON u.`email` = m.`email`
+ WHERE NOT EXISTS (
          SELECT 1
            FROM `lecturer_course_assignments` lca
           WHERE lca.`lecturer_id` = u.`id`
@@ -536,11 +664,28 @@ SELECT u.`id`, c.`id`, NULL, 1
 INSERT INTO `enrollments` (`cohort_id`, `student_id`, `status`)
 SELECT c.`id`, u.`id`, 'enrolled'
   FROM `users` u
-  JOIN `cohorts` c ON c.`name` = 'CS101-A'
+  JOIN (
+    SELECT 'student@utas.edu.gh' AS `email`, 'CS101-A' AS `cohort`
+    UNION ALL SELECT 'student@utas.edu.gh', 'CS102-A'
+    UNION ALL SELECT 'kwame.ansah@utas.edu.gh', 'CS101-A'
+    UNION ALL SELECT 'kwame.ansah@utas.edu.gh', 'CS201-A'
+    UNION ALL SELECT 'abena.osei@utas.edu.gh', 'CS102-A'
+    UNION ALL SELECT 'abena.osei@utas.edu.gh', 'CS202-A'
+    UNION ALL SELECT 'fiifi.baah@utas.edu.gh', 'CS301-A'
+    UNION ALL SELECT 'ama.darko@utas.edu.gh', 'IT105-A'
+    UNION ALL SELECT 'yaw.boateng@utas.edu.gh', 'IT205-A'
+    UNION ALL SELECT 'yaw.boateng@utas.edu.gh', 'IT305-A'
+    UNION ALL SELECT 'akua.owusu@utas.edu.gh', 'IT405-A'
+    UNION ALL SELECT 'kojo.mensah@utas.edu.gh', 'CE101-A'
+    UNION ALL SELECT 'ama.adjei@utas.edu.gh', 'CE201-A'
+    UNION ALL SELECT 'kofi.sarpong@utas.edu.gh', 'EE101-A'
+    UNION ALL SELECT 'afia.nyarko@utas.edu.gh', 'EE201-A'
+    UNION ALL SELECT 'nana.yeboah@utas.edu.gh', 'IS101-A'
+    UNION ALL SELECT 'esi.appiah@utas.edu.gh', 'IS201-A'
+  ) m ON m.`email` = u.`email`
+  JOIN `cohorts` c ON c.`name` = m.`cohort`
   JOIN `semesters` s ON s.`id` = c.`semester_id` AND s.`name` = '2026-A'
-  JOIN `departments` d ON d.`id` = c.`department_id` AND d.`code` = 'CS'
- WHERE u.`email` = 'student@utas.edu.gh'
-   AND u.`student_index` REGEXP '^[0-9]+$'
+ WHERE u.`student_index` REGEXP '^[0-9]+$'
 ON DUPLICATE KEY UPDATE `status` = 'enrolled';
 
 -- ---------------------------------------------------------------------------
@@ -553,10 +698,10 @@ ON DUPLICATE KEY UPDATE `status` = 'enrolled';
 --    php bin/console smoke
 --
 --    WHAT THE DATA LOOKS LIKE
---      3 departments · 11 courses · 11 cohorts
+--      5 departments · 21 courses · 21 cohorts
 --      17 time slots, 16 of them active
 --      22 rooms, 19 of them both available and bookable, 10 of them lecture theatres
---      3 room features required by 5 courses
+--      3 room features required by lab-heavy courses
 --      3 non-teaching dates in the 2026-A teaching window
 --
 --    WHAT `--department=CS` SHOULD REPORT

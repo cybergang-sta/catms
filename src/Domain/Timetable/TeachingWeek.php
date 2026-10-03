@@ -126,6 +126,11 @@ final class TeachingWeek
         return $labels;
     }
 
+    public static function weekdayName(int $iso): string
+    {
+        return self::ISO_DAY_NAMES[$iso] ?? ('Day ' . $iso);
+    }
+
     private static function parseDate(string $date): DateTimeImmutable
     {
         $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date, new DateTimeZone('UTC'));

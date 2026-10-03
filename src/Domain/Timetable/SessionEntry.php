@@ -132,29 +132,30 @@ final class SessionEntry
     }
 
     /**
+     * One spreadsheet row in the order `TimetableService::csvHeader()` publishes.
+     * The date and week number come from the teaching week being exported, so a
+     * recurring week-1 pattern can be written out as the week the reader asked for.
+     *
      * @return list<string>
      */
-    public function toCsvRow(): array
+    public function toCsvRow(?string $date = null, ?int $weekNumber = null): array
     {
         return [
-            (string) $this->weekNumber,
-            (string) $this->dayOfWeek,
-            $this->startTime,
-            $this->endTime,
+            (string) ($weekNumber ?? $this->weekNumber),
+            TeachingWeek::weekdayName($this->dayOfWeek),
+            $date ?? '',
+            substr($this->startTime, 0, 5),
+            substr($this->endTime, 0, 5),
             $this->courseCode,
             $this->courseTitle,
             $this->cohortName,
-            (string) $this->headcount,
             $this->lecturerName,
             $this->roomCode,
-            $this->roomName,
             $this->roomBuilding,
-            $this->roomFloor === null ? '' : (string) $this->roomFloor,
             (string) $this->roomCapacity,
-            $this->roomType,
             $this->status,
             $this->source,
-            $this->overrideReason ?? '',
+            $this->isOverride ? 'yes' : 'no',
         ];
     }
 }

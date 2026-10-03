@@ -98,9 +98,9 @@ final class Response
             return self::error(500, 'INTERNAL_ERROR', 'Could not build the export.');
         }
 
-        fputcsv($handle, $header);
+        fputcsv($handle, $header, ',', '"', '\\');
         foreach ($rows as $row) {
-            fputcsv($handle, $row);
+            fputcsv($handle, $row, ',', '"', '\\');
         }
 
         rewind($handle);

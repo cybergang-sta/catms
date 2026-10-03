@@ -1421,7 +1421,9 @@ by the "semester timeline" view.
 ### `GET /timetable/{semesterId}/export.csv` — FR-TIME-01
 
 `text/csv`, RFC 4180, UTF-8 with BOM so Excel opens accented African names
-correctly. One row per session-week:
+correctly. One row per session-week. `?week=N` exports that week's grid only;
+without it, a stored week-1 pattern is written once per teaching week with that
+week's dates.
 
 ```csv
 Week,Day,Date,Start,End,Course,Title,Cohort,Lecturer,Room,Building,Capacity,Status,Source,Changed

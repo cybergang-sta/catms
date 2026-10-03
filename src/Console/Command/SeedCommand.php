@@ -90,6 +90,92 @@ final class SeedCommand extends Command
         ],
     ];
 
+    /** Extra local directory so the catalogue is not three accounts and one lecturer. */
+    private const CAMPUS_ACCOUNTS = [
+        [
+            'email' => 'akosua.boateng@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
+            'first_name' => 'Akosua', 'last_name' => 'Boateng', 'staff_id' => 'UTAS/LEC/0002', 'department' => 'CS',
+        ],
+        [
+            'email' => 'yaw.asante@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
+            'first_name' => 'Yaw', 'last_name' => 'Asante', 'staff_id' => 'UTAS/LEC/0003', 'department' => 'CS',
+        ],
+        [
+            'email' => 'efua.mensah@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
+            'first_name' => 'Efua', 'last_name' => 'Mensah', 'staff_id' => 'UTAS/LEC/0004', 'department' => 'IT',
+        ],
+        [
+            'email' => 'kofi.addo@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
+            'first_name' => 'Kofi', 'last_name' => 'Addo', 'staff_id' => 'UTAS/LEC/0005', 'department' => 'IT',
+        ],
+        [
+            'email' => 'nana.amponsah@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
+            'first_name' => 'Nana', 'last_name' => 'Amponsah', 'staff_id' => 'UTAS/LEC/0006', 'department' => 'CE',
+        ],
+        [
+            'email' => 'abena.sarpong@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
+            'first_name' => 'Abena', 'last_name' => 'Sarpong', 'staff_id' => 'UTAS/LEC/0007', 'department' => 'EE',
+        ],
+        [
+            'email' => 'kojo.frimpong@utas.edu.gh', 'password' => 'Lecturer@1234', 'role' => 'lecturer',
+            'first_name' => 'Kojo', 'last_name' => 'Frimpong', 'staff_id' => 'UTAS/LEC/0008', 'department' => 'IS',
+        ],
+        [
+            'email' => 'kwame.ansah@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Kwame', 'last_name' => 'Ansah', 'student_index' => '20230410001', 'department' => 'CS',
+        ],
+        [
+            'email' => 'abena.osei@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Abena', 'last_name' => 'Osei', 'student_index' => '20230410002', 'department' => 'CS',
+        ],
+        [
+            'email' => 'fiifi.baah@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Fiifi', 'last_name' => 'Baah', 'student_index' => '20230410003', 'department' => 'CS',
+        ],
+        [
+            'email' => 'ama.darko@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Ama', 'last_name' => 'Darko', 'student_index' => '20230410011', 'department' => 'IT',
+        ],
+        [
+            'email' => 'yaw.boateng@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Yaw', 'last_name' => 'Boateng', 'student_index' => '20230410012', 'department' => 'IT',
+        ],
+        [
+            'email' => 'akua.owusu@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Akua', 'last_name' => 'Owusu', 'student_index' => '20230410013', 'department' => 'IT',
+        ],
+        [
+            'email' => 'kojo.mensah@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Kojo', 'last_name' => 'Mensah', 'student_index' => '20230410021', 'department' => 'CE',
+        ],
+        [
+            'email' => 'ama.adjei@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Ama', 'last_name' => 'Adjei', 'student_index' => '20230410022', 'department' => 'CE',
+        ],
+        [
+            'email' => 'kofi.sarpong@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Kofi', 'last_name' => 'Sarpong', 'student_index' => '20230410031', 'department' => 'EE',
+        ],
+        [
+            'email' => 'afia.nyarko@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Afia', 'last_name' => 'Nyarko', 'student_index' => '20230410032', 'department' => 'EE',
+        ],
+        [
+            'email' => 'nana.yeboah@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Nana', 'last_name' => 'Yeboah', 'student_index' => '20230410041', 'department' => 'IS',
+        ],
+        [
+            'email' => 'esi.appiah@utas.edu.gh', 'password' => 'Student@1234', 'role' => 'student',
+            'first_name' => 'Esi', 'last_name' => 'Appiah', 'student_index' => '20230410042', 'department' => 'IS',
+        ],
+    ];
+
+    /** @return list<array<string, string>> */
+    private static function accounts(): array
+    {
+        return array_merge(self::DEMO_ACCOUNTS, self::CAMPUS_ACCOUNTS);
+    }
+
     public function name(): string
     {
         return 'seed';
@@ -587,7 +673,7 @@ final class SeedCommand extends Command
      */
     private function attachDemoDepartments(Database $database): void
     {
-        foreach (self::DEMO_ACCOUNTS as $account) {
+        foreach (self::accounts() as $account) {
             $database->execute(
                 'UPDATE `users` u
                  JOIN `departments` d ON d.`code` = :code
@@ -617,7 +703,9 @@ final class SeedCommand extends Command
         $created = 0;
         $printed = [];
 
-        foreach (self::DEMO_ACCOUNTS as $account) {
+        $demoEmails = array_column(self::DEMO_ACCOUNTS, 'email');
+
+        foreach (self::accounts() as $account) {
             $email = (string) $account['email'];
 
             $existing = $database->selectOne(
@@ -665,12 +753,23 @@ final class SeedCommand extends Command
         }
 
         if ($printed !== [] && !$asJson) {
+            $demoPrinted = array_intersect_key($printed, array_flip($demoEmails));
+            $campusPrinted = array_diff_key($printed, $demoPrinted);
             $output->line();
-            $output->line('  Demo accounts created. These passwords are shown once and never stored:');
-            foreach ($printed as $email => $password) {
-                $output->line(sprintf('    %-28s %s', $email, $password));
+            if ($demoPrinted !== []) {
+                $output->line('  Demo accounts created. These passwords are shown once and never stored:');
+                foreach ($demoPrinted as $email => $password) {
+                    $output->line(sprintf('    %-28s %s', $email, $password));
+                }
+                $output->line();
             }
-            $output->line();
+            if ($campusPrinted !== []) {
+                $output->line('  Campus lecturers and students created. Local passwords are Lecturer@1234 and Student@1234.');
+                foreach (array_keys($campusPrinted) as $email) {
+                    $output->line(sprintf('    %s', $email));
+                }
+                $output->line();
+            }
             $output->warn(
                 'These accounts use published credentials. They exist for local development; the seed '
                 . 'refuses to run in production without --i-know-what-i-am-doing.',

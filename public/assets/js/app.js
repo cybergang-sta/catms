@@ -1,4 +1,4 @@
-import { extraView, failureText, handleClick, handleSubmit, homePath, install, isExtra, isPublic, mobileTabs, navGroups, profileExtras, publicHtml, roomAdminForm } from './manage.js?v=13';
+import { extraView, failureText, handleClick, handleSubmit, homePath, install, isExtra, isPublic, mobileTabs, navGroups, profileExtras, publicHtml, roomAdminForm } from './manage.js?v=17';
 
 const API = '/api/v1';
 
@@ -389,6 +389,7 @@ function sessionButton(card, index, compact) {
   const tone = `swatch-${swatch(card.code)}`;
   const when = `${clock(card.start)}–${clock(card.end)}`;
   const lastName = String(card.lecturer || '').split(' ').filter(Boolean).pop() || '';
+  const roomKind = pretty(card.type || 'lecture');
   return `<button type="button" class="session ${tone}" data-open="${index}">
     ${compact ? '' : `<span class="when">${esc(when)}</span>`}
     <span>
@@ -397,7 +398,10 @@ function sessionButton(card, index, compact) {
         ${compact ? '' : chip(card.status)}
       </span>
       ${compact ? '' : `<strong>${esc(card.title)}</strong>`}
-      <span class="meta">${compact ? `${esc(card.roomCode || card.room || '')}${lastName ? ` · ${esc(lastName)}` : ''}` : `${esc(card.roomCode)} · ${esc(card.room)}${card.lecturer ? ` · ${esc(card.lecturer)}` : ''}`}</span>
+      ${compact
+        ? `<span class="session-place">${icon('rooms')} ${esc(card.roomCode || card.room || '')}${roomKind ? ` · ${esc(roomKind)}` : ''}</span>
+           ${lastName ? `<span class="session-who">${icon('profile')} ${esc(lastName)}</span>` : ''}`
+        : `<span class="meta">${esc(card.roomCode)} · ${esc(card.room)}${card.lecturer ? ` · ${esc(card.lecturer)}` : ''}</span>`}
     </span>
   </button>`;
 }
@@ -462,7 +466,7 @@ function authHtml() {
           </div>
           <button class="btn btn-primary" type="submit">Sign In</button>
         </form>
-        <p class="muted auth-links">Don’t have an account? <a data-nav href="/register">Register here</a> · <a data-nav href="/forgot">Forgot password</a></p>
+        <p class="muted auth-links">Don’t have an account? <a data-nav href="/register">Register here</a></p>
       </div>
     </section>
   </div>`;
@@ -492,8 +496,8 @@ function shellHtml() {
       </a>
       <div class="topbar-spacer"></div>
       <a class="user-chip" href="/profile" data-nav>
-        <span class="avatar">${esc(initials(user))}</span>
-        <span class="user-chip-name">${esc(user.display_name || roleLabel(user.role))}</span>
+        <span class="avatar">${esc((user.first_name || user.display_name || 'A').charAt(0).toUpperCase())}</span>
+        <span class="user-chip-name">${esc(user.role === 'admin' ? 'Admin' : (user.display_name || roleLabel(user.role)))}</span>
       </a>
       <button class="sign-out" type="button" data-logout>Sign Out</button>
     </header>
@@ -555,10 +559,18 @@ async function todayView() {
   };
 }
 
+function weekdayName(iso) {
+  return ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][Number(iso)] || '';
+}
+
 function visibleDays(days) {
-  return (days || [])
-    .filter((day) => Number(day.iso) <= 5 || (day.entries || []).length > 0 || day.is_non_teaching)
-    .sort((left, right) => String(left.date).localeCompare(String(right.date)));
+  const byIso = new Map((days || []).map((day) => [Number(day.iso), day]));
+  return [1, 2, 3, 4, 5].map((iso) => {
+    const day = byIso.get(iso);
+    return day
+      ? { ...day, label: weekdayName(iso) }
+      : { iso, date: '', label: weekdayName(iso), entries: [], is_non_teaching: false };
+  });
 }
 
 async function weekView() {
@@ -575,9 +587,8 @@ async function weekView() {
     });
   });
   const lookup = indexCards(cards);
-  const summary = data.summary || {};
   const weekMeta = data.week || {};
-  const board = cards.length ? weekBoard(days, lookup) : notice('Nothing is published this week', 'Move to another week, or wait until the timetable is generated.');
+  const board = cards.length ? weekBoard(days, lookup, data.semester?.id, weekMeta.number) : notice('Nothing is published this week', 'Move to another week, or wait until the timetable is generated.');
   const mobile = dayList(days, lookup);
 
   return {
@@ -586,39 +597,34 @@ async function weekView() {
     html: `<header class="page-head">
       <div>
         <h1>Weekly Timetable</h1>
-        <p class="muted">${esc(weekMeta.start_date ? spanLabel(weekMeta.start_date, weekMeta.end_date) : 'Full semester schedule')} · ${esc(data.semester?.name || '')}</p>
+        <p class="muted">Full semester schedule — all courses and halls</p>
       </div>
-      ${pager(
-        weekMeta.can_prev ? `/week?week=${weekMeta.number - 1}` : '',
-        weekMeta.can_next ? `/week?week=${weekMeta.number + 1}` : '',
-        'Previous week',
-        'Next week',
-      )}
     </header>
-    ${stats([
-      [summary.sessions ?? cards.length, 'Sessions'],
-      [summary.rooms ?? 0, 'Rooms'],
-      [summary.lecturers ?? 0, 'Lecturers'],
-      [summary.overridden ?? 0, 'Adjusted'],
-    ])}
     <div class="board-wrap${cards.length ? '' : ' is-empty'}">${board}</div>
     ${mobile}`,
   };
 }
 
-function weekBoard(days, lookup) {
+function weekBoard(days, lookup, semesterId, weekNumber) {
   const times = [...new Set(days.flatMap((day) => (day.entries || []).map((entry) => entry.slot?.start)))].filter(Boolean).sort();
   const head = days.map((day) => `<div class="board-day${day.is_non_teaching ? ' is-off' : ''}"><span>${esc(day.label)}</span>${day.note ? `<em>${esc(day.note)}</em>` : ''}</div>`).join('');
   const rows = times.map((time) => {
+    const sample = days.flatMap((day) => day.entries || []).find((entry) => entry.slot?.start === time);
     const cells = days.map((day) => {
       const items = (day.entries || []).filter((entry) => entry.slot?.start === time);
       const buttons = items.map((entry) => sessionButton(fromGrid(entry), lookup.get(String(entry.id)), true)).join('');
       return `<div class="board-cell">${buttons}</div>`;
     }).join('');
-    return `<div class="board-time">${esc(clock(time))}</div>${cells}`;
+    return `<div class="board-time"><span>${esc(clock(time))}</span>${sample?.slot?.end ? `<small>${esc(clock(sample.slot.end))}</small>` : ''}</div>${cells}`;
   }).join('');
   return `<section class="panel grid-panel">
-    <div class="grid-toolbar"><h2>${icon('week')} Weekly Schedule Grid</h2><span class="legend"><i class="dot-it"></i> IT <i class="dot-cs"></i> CS</span></div>
+    <div class="grid-toolbar">
+      <h2>${icon('week')} Weekly Schedule Grid</h2>
+      <div class="grid-tools">
+        <span class="legend"><i class="dot-it"></i> IT <i class="dot-cs"></i> CS</span>
+        ${semesterId ? `<button class="btn btn-ghost" type="button" data-export="${esc(semesterId)}" data-export-week="${esc(weekNumber || '')}">Download CSV</button>` : ''}
+      </div>
+    </div>
     <div class="board days-${days.length}" aria-label="Week timetable"><div class="board-corner">Time</div>${head}${rows}</div>
   </section>`;
 }
@@ -1013,10 +1019,11 @@ async function markRead(id) {
   }
 }
 
-async function downloadCsv(semesterId) {
+async function downloadCsv(semesterId, week) {
   const token = session()?.access_token;
+  const query = week ? `?week=${encodeURIComponent(week)}` : '';
   try {
-    const response = await fetch(`${API}/timetable/${encodeURIComponent(semesterId)}/export.csv`, {
+    const response = await fetch(`${API}/timetable/${encodeURIComponent(semesterId)}/export.csv${query}`, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
     if (!response.ok) {
@@ -1035,7 +1042,7 @@ async function downloadCsv(semesterId) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `timetable-${semesterId}.csv`;
+    link.download = week ? `timetable-${semesterId}-week-${week}.csv` : `timetable-${semesterId}.csv`;
     link.click();
     URL.revokeObjectURL(url);
   } catch (error) {
@@ -1204,7 +1211,7 @@ function onClick(event) {
 
   const exp = event.target.closest('[data-export]');
   if (exp) {
-    downloadCsv(exp.dataset.export);
+    downloadCsv(exp.dataset.export, exp.dataset.exportWeek);
     return;
   }
 

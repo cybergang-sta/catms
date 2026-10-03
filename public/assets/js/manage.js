@@ -49,16 +49,6 @@ export function navGroups() {
           { href: '/profile', id: 'profile', label: 'My Profile' },
         ],
       },
-      {
-        label: 'More',
-        items: [
-          { href: '/today', id: 'today', label: 'Today' },
-          { href: '/calendar', id: 'calendar', label: 'Calendar' },
-          { href: '/find', id: 'find', label: 'Find' },
-          { href: '/audit', id: 'reports', label: 'Audit' },
-          { href: '/alerts', id: 'alerts', label: 'Alerts' },
-        ],
-      },
     ];
   }
   const main = [
@@ -398,7 +388,7 @@ function page(title, eyebrow, html) {
   return {
     cachedAt: null,
     title,
-    html: `<header class="page-head"><div><h1>${kit.esc(title)}</h1><p class="muted">${kit.esc(eyebrow)}</p></div></header>${html}`,
+    html: `<header class="page-head"><div><h1>${kit.esc(title)}</h1>${eyebrow ? `<p class="muted">${kit.esc(eyebrow)}</p>` : ''}</div></header>${html}`,
   };
 }
 
@@ -445,11 +435,26 @@ function resetCard() {
     </form>`;
 }
 
-function deptName(id) {
-  if (id === 1) return 'Computer Science';
-  if (id === 2) return 'Information Technology';
-  if (id === 3) return 'Computer Engineering';
-  return id ? `Department ${id}` : 'Shared';
+function deptName(id, code) {
+  const prefix = String(code || '').replace(/[0-9].*$/, '').toUpperCase();
+  const byCode = {
+    CS: 'Computer Science',
+    IT: 'Information Technology',
+    CE: 'Computer Engineering',
+    EE: 'Electrical Engineering',
+    IS: 'Information Systems',
+  };
+  if (byCode[prefix]) {
+    return byCode[prefix];
+  }
+  const byId = {
+    1: 'Computer Science',
+    2: 'Information Technology',
+    3: 'Computer Engineering',
+    13: 'Electrical Engineering',
+    14: 'Information Systems',
+  };
+  return byId[id] || (id ? `Department ${id}` : 'Shared');
 }
 
 function codeMark(code) {
@@ -483,11 +488,14 @@ async function manageHome() {
     const id = row.room?.id;
     if (id) booked[id] = (booked[id] || 0) + 1;
   });
-  const available = rooms.filter((room) => room.status === 'available' && room.is_bookable !== false).length;
+  const openRooms = rooms.filter((room) => room.status === 'available' && room.is_bookable !== false);
+  const hallRange = openRooms.length
+    ? `${openRooms[0].code} – ${openRooms[openRooms.length - 1].code} available`
+    : 'None available';
   const courseRows = courses.slice(0, 8).map((course) => `<tr>
       <td>${codeMark(course.code)}<span class="code-text">${kit.esc(course.code)}</span></td>
       <td>${kit.esc(course.title)}</td>
-      <td><span class="soft-pill">${kit.esc(deptName(course.department_id))}</span></td>
+      <td><span class="soft-pill">${kit.esc(deptName(course.department_id, course.code))}</span></td>
     </tr>`).join('');
   const hallRows = rooms.slice(0, 8).map((room) => `<tr>
       <td>${kit.esc(room.code)}</td>
@@ -505,7 +513,7 @@ async function manageHome() {
       </header>
       <div class="stats">
         <article class="stat"><small>Total Courses</small><span>${kit.esc(courses.length)}</span><em>Active this semester</em></article>
-        <article class="stat"><small>Lecture Halls</small><span>${kit.esc(rooms.length)}</span><em>${kit.esc(available)} available</em></article>
+        <article class="stat"><small>Lecture Halls</small><span>${kit.esc(rooms.length)}</span><em>${kit.esc(hallRange)}</em></article>
         <article class="stat"><small>Allocations</small><span>${kit.esc(allocations.length || dash.proposed_allocations || 0)}</span><em>Scheduled sessions</em></article>
         <article class="stat"><small>Conflicts</small><span class="${conflicts.length ? 'is-alert' : ''}">${kit.esc(conflicts.length || dash.open_conflicts || 0)}</span><em>Detected issues</em></article>
       </div>
@@ -531,26 +539,39 @@ async function manageHome() {
 async function usersView() {
   let body = '';
   try {
-    const result = await kit.api('/users?per_page=50');
-    const lecturers = kit.listOf(result.data).filter((user) => user.role === 'lecturer' || user.role === 'admin');
-    const shown = lecturers.length ? lecturers : kit.listOf(result.data);
+    const [result, allocRes] = await Promise.all([
+      kit.api('/users?per_page=50'),
+      kit.api('/allocations?per_page=200').catch(() => ({ data: [] })),
+    ]);
+    const taught = {};
+    kit.listOf(allocRes.data).forEach((row) => {
+      const lecturerId = row.lecturer?.id || row.lecturer_id;
+      const code = row.course?.code || row.course_code;
+      if (!lecturerId || !code) {
+        return;
+      }
+      taught[lecturerId] = taught[lecturerId] || new Set();
+      taught[lecturerId].add(code);
+    });
+    const lecturers = kit.listOf(result.data).filter((user) => user.role === 'lecturer');
+    const shown = lecturers.length ? lecturers : kit.listOf(result.data).filter((user) => user.role !== 'student');
     const table = shown.length
       ? `<div class="panel"><div class="table-wrap"><table class="data-table">
-          <thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Email</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Title</th><th>Department</th><th>Assigned Courses</th><th>Email</th></tr></thead>
           <tbody>${shown.map((user) => {
             const id = user.user_id || user.id;
             const name = user.display_name || `${user.first_name || ''} ${user.last_name || ''}`.trim();
-            const manage = can('user:manage') ? `<form class="inline-form" data-user-id="${kit.esc(id)}">
-                <select name="role" aria-label="Role">${['student', 'lecturer', 'admin'].map((option) => `<option value="${option}"${user.role === option ? ' selected' : ''}>${option}</option>`).join('')}</select>
-                <select name="status" aria-label="Status">${['pending', 'active', 'suspended'].map((status) => `<option value="${status}"${user.status === status ? ' selected' : ''}>${status}</option>`).join('')}</select>
-                <button class="btn btn-ghost" type="submit">Save</button>
-              </form>` : '';
+            const title = user.role === 'admin' ? 'Administrator' : 'Lecturer';
+            const codes = [...(taught[id] || [])];
+            const assigned = codes.length
+              ? codes.map((code) => `<span class="soft-pill">${kit.esc(code)}</span>`).join(' ')
+              : '—';
             return `<tr>
               <td><span class="who-cell">${codeMark(name)}<span>${kit.esc(name)}</span></span></td>
-              <td>${kit.esc(kit.pretty(user.role))}</td>
+              <td>${kit.esc(title)}</td>
               <td>${kit.esc(deptName(user.department_id))}</td>
+              <td>${assigned}</td>
               <td>${kit.esc(user.email || '')}</td>
-              <td>${manage}</td>
             </tr>`;
           }).join('')}</tbody>
         </table></div></div>`
@@ -571,25 +592,44 @@ async function usersView() {
       <p class="muted">The new account is active. They choose a password through forgot password.</p>
       <button class="btn btn-primary" type="submit">Create account</button>
     </form>` : '';
-  return page('Lecturers', 'Teaching staff', `${body}${form}`);
+  return page('Lecturers', '', `${body}${form}`);
 }
 
 async function coursesView() {
   let body = '';
   try {
-    const result = await kit.api('/courses?per_page=50');
+    const [result, userRes, allocRes] = await Promise.all([
+      kit.api('/courses?per_page=50'),
+      kit.api('/users?per_page=50').catch(() => ({ data: [] })),
+      kit.api('/allocations?per_page=200').catch(() => ({ data: [] })),
+    ]);
+    const people = {};
+    kit.listOf(userRes.data).forEach((user) => {
+      people[user.user_id || user.id] = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.display_name || '';
+    });
+    const taught = {};
+    kit.listOf(allocRes.data).forEach((row) => {
+      const id = row.course?.id || row.course_id;
+      const name = row.lecturer?.name || row.lecturer_name;
+      if (id && name) {
+        taught[id] = name;
+      }
+    });
     const rows = kit.listOf(result.data);
     body = rows.length
       ? `<div class="panel"><h2>${kit.icon('courses')} Course Registry</h2><div class="table-wrap"><table class="data-table">
-          <thead><tr><th>Code</th><th>Course Title</th><th>Department</th><th>Credits</th><th>Status</th><th></th></tr></thead>
-          <tbody>${rows.map((course) => `<tr>
+          <thead><tr><th>Code</th><th>Course Title</th><th>Department</th><th>Lecturer</th><th>Credits</th><th>Status</th></tr></thead>
+          <tbody>${rows.map((course) => {
+            const lecturer = taught[course.id] || people[course.default_lecturer_id] || '—';
+            return `<tr>
             <td>${codeMark(course.code)}<span class="code-text">${kit.esc(course.code)}</span></td>
             <td>${kit.esc(course.title)}</td>
-            <td>${kit.esc(deptName(course.department_id))}</td>
+            <td>${kit.esc(deptName(course.department_id, course.code))}</td>
+            <td><span class="who-cell">${kit.icon('profile')}<span>${kit.esc(lecturer)}</span></span></td>
             <td>${kit.esc(course.credit_hours ?? '—')} cr</td>
             <td><span class="status-dot${course.is_active === false ? '' : ' is-on'}">${course.is_active === false ? 'Inactive' : 'Active'}</span></td>
-            <td>${can('course:manage') ? `<button class="btn btn-ghost" type="button" data-drop-course="${kit.esc(course.id)}">Remove</button>` : ''}</td>
-          </tr>`).join('')}</tbody>
+          </tr>`;
+          }).join('')}</tbody>
         </table></div></div>`
       : kit.notice('No courses', 'Add the first course for this department.');
   } catch (error) {
@@ -629,7 +669,7 @@ async function coursesView() {
       <div class="field"><label class="field-label" for="edit-course-features">Required features</label><input id="edit-course-features" name="features" placeholder="projector, lab"></div>
       <button class="btn btn-primary" type="submit">Update course</button>
     </form>` : '';
-  return page('Courses', 'Catalogue', `${body}${form}`);
+  return page('Courses', '', `${body}${form}`);
 }
 
 async function calendarView() {

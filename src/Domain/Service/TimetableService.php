@@ -490,26 +490,86 @@ final class TimetableService
     public static function csvHeader(): array
     {
         return [
-            'week',
-            'iso_weekday',
-            'start_time',
-            'end_time',
-            'course_code',
-            'course_title',
-            'course_level',
-            'cohort',
-            'headcount',
-            'lecturer',
-            'room_code',
-            'room_name',
-            'building',
-            'floor',
-            'capacity',
-            'room_type',
-            'status',
-            'source',
-            'override_reason',
+            'Week',
+            'Day',
+            'Date',
+            'Start',
+            'End',
+            'Course',
+            'Title',
+            'Cohort',
+            'Lecturer',
+            'Room',
+            'Building',
+            'Capacity',
+            'Status',
+            'Source',
+            'Changed',
         ];
+    }
+
+    /**
+     * The same sittings the week or term view shows, as spreadsheet rows.
+     *
+     * `?week=` exports that grid. Without it, a week-1 recurring pattern is
+     * written once per teaching week with that week's calendar dates — the same
+     * expansion the term view already uses for its density bar.
+     *
+     * @return list<list<string>>
+     */
+    public function csvRows(Semester $semester, Viewer $viewer, ?int $weekNumber = null): array
+    {
+        if ($weekNumber !== null && $weekNumber >= 1) {
+            $week = $semester->week($weekNumber);
+
+            return $this->rowsForEntries($semester, $this->entriesForWeek($semester, $week->number, $viewer));
+        }
+
+        $entries = $this->semesterEntries($semester, $viewer);
+        $weeksPresent = [];
+        foreach ($entries as $entry) {
+            $weeksPresent[$entry->weekNumber] = true;
+        }
+
+        if (isset($weeksPresent[1]) && count($weeksPresent) === 1) {
+            $rows = [];
+            for ($number = 1; $number <= $semester->totalWeeks; $number++) {
+                $week = $semester->week($number);
+                foreach ($entries as $entry) {
+                    $rows[] = $entry->toCsvRow($this->dateForIso($week, $entry->dayOfWeek), $number);
+                }
+            }
+
+            return $rows;
+        }
+
+        return $this->rowsForEntries($semester, $entries);
+    }
+
+    /**
+     * @param list<SessionEntry> $entries
+     * @return list<list<string>>
+     */
+    private function rowsForEntries(Semester $semester, array $entries): array
+    {
+        $rows = [];
+        foreach ($entries as $entry) {
+            $week = $semester->week($entry->weekNumber);
+            $rows[] = $entry->toCsvRow($this->dateForIso($week, $entry->dayOfWeek));
+        }
+
+        return $rows;
+    }
+
+    private function dateForIso(TeachingWeek $week, int $iso): string
+    {
+        foreach ($week->dates() as $date) {
+            if ($this->isoWeekdayOf($date) === $iso) {
+                return $date;
+            }
+        }
+
+        return $week->startDate;
     }
 
     /**

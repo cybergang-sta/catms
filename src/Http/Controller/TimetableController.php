@@ -179,18 +179,16 @@ final class TimetableController extends Controller
         }
         $semester = $semesters[0];
 
-        $entries = $service->semesterEntries($semester, $viewer);
-
-        $rows = array_map(
-            static fn (SessionEntry $entry): array => $entry->toCsvRow(),
-            $entries,
+        $week = $request->queryInt('week');
+        $rows = $service->csvRows(
+            $semester,
+            $viewer,
+            $week !== null && $week >= 1 ? $week : null,
         );
 
-        $filename = sprintf(
-            'timetable-%s-%s.csv',
-            $semester->name,
-            $identity->role(),
-        );
+        $filename = $week !== null && $week >= 1
+            ? sprintf('timetable-%s-week-%d-%s.csv', $semester->name, $week, $identity->role())
+            : sprintf('timetable-%s-%s.csv', $semester->name, $identity->role());
 
         $this->logger()->info('Timetable exported.', [
             'semester_id' => $semester->id,

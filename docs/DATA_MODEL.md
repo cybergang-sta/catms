@@ -456,9 +456,9 @@ data and should stay reviewable as data. `bin/console seed` runs it through the
 same statement splitter as the schema, inside the single transaction that also
 installs RBAC and the demo users, and it is written to be re-runnable.
 
-It contains the reference statements: 3 departments, 7 room features, 22 rooms,
-`room_feature_map`, 17 time slots, CS and IT semesters, calendar exceptions,
-11 courses, `course_feature_requirements`, 11 cohorts, and
+It contains the reference statements: 5 departments, 7 room features, 22 rooms,
+`room_feature_map`, 17 time slots, CS/IT/CE/EE/IS semesters, calendar exceptions,
+21 courses, `course_feature_requirements`, 21 cohorts, and
 `lecturer_course_assignments`. It contains **no** users, **no** roles or
 permissions (those come from `config/rbac.php`), and **no** allocations.
 
