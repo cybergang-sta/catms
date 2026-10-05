@@ -18,10 +18,11 @@ namespace App\Domain\Entity;
  * them to decide whether to lock, and because an administrator viewing a profile
  * legitimately needs to see that an account is locked. They are not secrets.
  *
- * Status is the account gate: only `active` may authenticate at all. `pending`
- * means e-mail unverified, `suspended` means an administrator disabled it, and
- * `archived` means the personal data has been pseudonymised for Act 843 erasure
- * while the historical allocations that referenced the account are preserved.
+ * Status is the account gate. Signup is active immediately — there is no
+ * e-mail verification step. `suspended` means an administrator disabled it,
+ * and `archived` means the personal data has been pseudonymised for Act 843
+ * erasure while the historical allocations that referenced the account are
+ * preserved.
  */
 final class User
 {
@@ -188,14 +189,20 @@ final class User
     /**
      * Whether this account may obtain a token at all.
      *
-     * A suspended or archived account is refused with 403 while a pending one is
-     * refused with 403 as well but a different message, because "verify your
-     * e-mail" is actionable and "your account is suspended" tells an attacker the
-     * address is registered.
+     * Locked, suspended, and archived accounts are refused. Pending leftovers
+     * from the old verify-email flow may still sign in.
      */
     public function canAuthenticate(?string $now = null): bool
     {
-        return $this->isActive() && $this->emailVerified() && !$this->isLocked($now);
+        if ($this->isLocked($now)) {
+            return false;
+        }
+
+        if ($this->status === self::STATUS_SUSPENDED || $this->status === self::STATUS_ARCHIVED) {
+            return false;
+        }
+
+        return $this->status === self::STATUS_ACTIVE || $this->status === self::STATUS_PENDING;
     }
 
     /**

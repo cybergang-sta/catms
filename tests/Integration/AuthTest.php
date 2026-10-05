@@ -8,9 +8,9 @@ use Tests\Integration\Support\Catalogue;
 use Tests\Integration\Support\HttpTestCase;
 
 /**
- * FR-AUTH-01 … FR-AUTH-05 and NFR-SEC-03. Registration stays pending, a wrong
- * password is indistinguishable from an unknown address, and a session can
- * be refreshed.
+ * FR-AUTH-01 … FR-AUTH-05 and NFR-SEC-03. Signup is ready to sign in.
+ * A wrong password is indistinguishable from an unknown address, and a
+ * session can be refreshed.
  */
 final class AuthTest extends HttpTestCase
 {
@@ -43,21 +43,53 @@ final class AuthTest extends HttpTestCase
         self::assertSame($wrong->decoded()['error']['message'], $missing->decoded()['error']['message']);
     }
 
-    public function testRegistrationCreatesAPendingStudentAndDoesNotReturnAHash(): void
+    public function testRegistrationCreatesAnActiveStudentWhoCanSignIn(): void
     {
         $email = 'new.student.' . bin2hex(random_bytes(4)) . '@utas.edu.gh';
+        $password = 'river-lantern-semester';
         $body = $this->assertEnvelope(Catalogue::call('POST', '/auth/register', [], [
             'email'                 => $email,
-            'password'              => 'river-lantern-semester',
-            'password_confirmation' => 'river-lantern-semester',
+            'password'              => $password,
+            'password_confirmation' => $password,
             'role'                  => 'student',
             'first_name'            => 'Kofi',
             'last_name'             => 'Boateng',
             'student_index'         => (string) random_int(10000000000, 99999999999),
         ]), 201);
 
-        self::assertSame('pending', $body['data']['status']);
+        self::assertSame('active', $body['data']['status']);
+        self::assertNotNull($body['data']['email_verified_at']);
         self::assertArrayNotHasKey('password_hash', $body['data']);
+
+        $login = $this->assertEnvelope(Catalogue::call('POST', '/auth/login', [], [
+            'email'    => $email,
+            'password' => $password,
+        ]), 200);
+        self::assertSame($email, $login['data']['user']['email']);
+    }
+
+    public function testAnAdminCreatedAccountCanSignInWithTheChosenPassword(): void
+    {
+        $email = 'new.lecturer.' . bin2hex(random_bytes(4)) . '@utas.edu.gh';
+        $password = 'campus-harbour-notes';
+        $created = $this->assertEnvelope(Catalogue::call('POST', '/users', [], [
+            'email'                 => $email,
+            'password'              => $password,
+            'password_confirmation' => $password,
+            'role'                  => 'lecturer',
+            'first_name'            => 'Ama',
+            'last_name'             => 'Mensah',
+        ], Catalogue::adminToken()), 201);
+
+        self::assertSame($email, $created['data']['email']);
+        self::assertSame('active', $created['data']['status']);
+        self::assertArrayNotHasKey('password_hash', $created['data']);
+
+        $login = $this->assertEnvelope(Catalogue::call('POST', '/auth/login', [], [
+            'email'    => $email,
+            'password' => $password,
+        ]), 200);
+        self::assertSame('lecturer', $login['data']['user']['role']);
     }
 
     public function testForgotPasswordLooksTheSameForAKnownAndUnknownAddress(): void

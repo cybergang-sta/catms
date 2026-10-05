@@ -6,12 +6,12 @@
  * phone would show the previous person's week. The page keeps that copy in
  * localStorage under the user id instead.
  */
-const CACHE = 'catms-shell-v22';
+const CACHE = 'catms-shell-v24';
 const SHELL = [
   '/index.html',
-  '/assets/css/app.css?v=22',
-  '/assets/js/app.js?v=22',
-  '/assets/js/manage.js?v=22',
+  '/assets/css/app.css?v=24',
+  '/assets/js/app.js?v=24',
+  '/assets/js/manage.js?v=24',
   '/assets/img/mark.svg',
   '/manifest.webmanifest',
 ];

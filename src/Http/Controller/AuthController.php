@@ -22,10 +22,9 @@ use App\Domain\Service\AccountService;
  * it is the only path that touches a credential, and a credential path that has
  * never been executed is a credential path with an unknown number of bugs in it.
  *
- * Registration creates a pending account. A password reset consumes a
- * single-use token, and for a pending account that reset is what marks the
- * address verified and the account active. The reset mail is queued on the
- * outbox; this request does not wait on a mail server.
+ * Registration creates an active account. A password reset consumes a
+ * single-use token. The reset mail is queued on the outbox; this request
+ * does not wait on a mail server.
  */
 final class AuthController extends Controller
 {
@@ -99,15 +98,15 @@ final class AuthController extends Controller
             throw new UnauthorizedException('The refresh token is not valid. Please sign in again.');
         }
 
+        /** @var Authenticator $authenticator */
+        $authenticator = $this->service(Authenticator::class);
+
         $user = $this->users()->findById($link['user_id']);
-        if ($user === null || !$user->canAuthenticate()) {
+        if ($user === null || !$authenticator->mayUseSession($user)) {
             $this->refreshTokens()->revokeFamily($link['family_id']);
 
             throw new UnauthorizedException('The refresh token is not valid. Please sign in again.');
         }
-
-        /** @var Authenticator $authenticator */
-        $authenticator = $this->service(Authenticator::class);
 
         // The next link in the same chain, so a replay can still be attributed to
         // the family it came from.

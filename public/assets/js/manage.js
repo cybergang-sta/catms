@@ -248,7 +248,7 @@ export function handleSubmit(event) {
   const id = form.id;
   if (id === 'register-form') {
     event.preventDefault();
-    submitAccount(form, '/auth/register', 'Account created. It stays pending until it is activated.', '/login');
+    submitRegister(form);
     return true;
   }
   if (id === 'forgot-form') {
@@ -273,7 +273,7 @@ export function handleSubmit(event) {
   }
   if (id === 'user-form') {
     event.preventDefault();
-    postForm(form, '/users', 'Account registered.', '/users');
+    postForm(form, '/users', 'Account created. They can sign in now.', '/users');
     return true;
   }
   if (id === 'course-form') {
@@ -411,7 +411,7 @@ function page(title, eyebrow, html) {
 
 function registerCard() {
   return `<h2>Create an account</h2>
-    <p class="muted">Students and lecturers can sign in after a reset link. An administrator account stays pending until another administrator activates it.</p>
+    <p class="muted">Use the email and password you enter here to sign in.</p>
     <form id="register-form" class="stack" novalidate>
       <div class="alert" data-error hidden role="alert"></div>
       <div class="field"><div class="field-label"><label for="reg-email">Email</label></div><input id="reg-email" name="email" type="email" required></div>
@@ -609,7 +609,9 @@ async function usersView() {
       <div class="field"><label class="field-label" for="user-role">Role</label><select id="user-role" name="role"><option value="student">Student</option><option value="lecturer">Lecturer</option><option value="admin">Administrator</option></select></div>
       <div class="field"><label class="field-label" for="user-index">Student ID</label><input id="user-index" name="student_index" inputmode="numeric" autocomplete="off" placeholder="20230410057"></div>
       <div class="field"><label class="field-label" for="user-staff">Staff id</label><input id="user-staff" name="staff_id"></div>
-      <p class="muted">The new account is active. They choose a password through forgot password.</p>
+      <div class="field"><label class="field-label" for="user-password">Password</label><input id="user-password" name="password" type="password" minlength="12" required></div>
+      <div class="field"><label class="field-label" for="user-confirm">Confirm password</label><input id="user-confirm" name="password_confirmation" type="password" required></div>
+      <p class="muted">They can sign in with this email and password. Use at least 12 characters.</p>
       <button class="btn btn-primary" type="submit">Create account</button>
     </form>` : '';
   return page('Lecturers', '', `${body}${form}`);
@@ -988,6 +990,20 @@ async function submitAccount(form, path, success, next) {
     await kit.api(path, { method: 'POST', body });
     kit.toast(success);
     kit.go(next);
+  } catch (reason) {
+    error.hidden = false;
+    error.textContent = failureText(reason);
+  }
+}
+
+async function submitRegister(form) {
+  const error = form.querySelector('[data-error]');
+  error.hidden = true;
+  const body = Object.fromEntries(new FormData(form));
+  try {
+    await kit.api('/auth/register', { method: 'POST', body });
+    kit.toast('Account created. You can sign in now.');
+    kit.go('/login');
   } catch (reason) {
     error.hidden = false;
     error.textContent = failureText(reason);

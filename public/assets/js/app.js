@@ -1,4 +1,4 @@
-import { extraView, failureText, handleClick, handleSubmit, homePath, install, isExtra, isPublic, mobileTabs, navGroups, profileExtras, publicHtml, roomAdminForm } from './manage.js?v=22';
+import { extraView, failureText, handleClick, handleSubmit, homePath, install, isExtra, isPublic, mobileTabs, navGroups, profileExtras, publicHtml, roomAdminForm } from './manage.js?v=24';
 
 const API = '/api/v1';
 

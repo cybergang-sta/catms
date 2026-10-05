@@ -73,7 +73,7 @@ final class Authenticator
         }
 
         $user = $this->users->findById($userId);
-        if ($user === null || !$user->canAuthenticate()) {
+        if ($user === null || !$this->mayUseSession($user)) {
             // A valid signature for an account that has since been suspended or
             // archived is still refused. An access token cannot be revoked, so
             // this check is the only thing that stops a suspended administrator
@@ -90,6 +90,11 @@ final class Authenticator
             email: $user->email(),
             displayName: $user->displayName(),
         );
+    }
+
+    public function mayUseSession(User $user, ?string $now = null): bool
+    {
+        return $user->canAuthenticate($now);
     }
 
     /**
@@ -154,7 +159,7 @@ final class Authenticator
             return null;
         }
 
-        if (!$user->canAuthenticate()) {
+        if (!$this->mayUseSession($user)) {
             $this->events->record(
                 $user->id(),
                 SecurityEventRecorder::LOGIN_FAILED,

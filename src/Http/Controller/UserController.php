@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controller;
 
+use App\Core\Exception\ValidationException;
 use App\Core\Request;
 use App\Core\Response;
 use App\Domain\Service\AccountService;
@@ -29,17 +30,26 @@ final class UserController extends Controller
     public function store(Request $request): Response
     {
         $input = $this->validator()->validateStrict($request->json(), [
-            'email'         => 'required|email|max:190',
-            'role'          => 'required|in:student,lecturer,admin',
-            'first_name'    => 'required|string|max:80',
-            'last_name'     => 'required|string|max:80',
-            'phone'         => 'nullable|string|max:30',
-            'student_index' => 'nullable|string|max:40|digits',
-            'staff_id'      => 'nullable|string|max:40',
-            'department_id' => 'nullable|integer',
+            'email'                 => 'required|email|max:190',
+            'role'                  => 'required|in:student,lecturer,admin',
+            'first_name'            => 'required|string|max:80',
+            'last_name'             => 'required|string|max:80',
+            'phone'                 => 'nullable|string|max:30',
+            'student_index'         => 'nullable|string|max:40|digits',
+            'staff_id'              => 'nullable|string|max:40',
+            'department_id'         => 'nullable|integer',
+            'password'              => 'nullable|string|max:200',
+            'password_confirmation' => 'nullable|string|max:200',
         ], [
             'student_index' => 'Student ID',
         ]);
+        $password = (string) ($input['password'] ?? '');
+        if ($password !== '' && $password !== (string) ($input['password_confirmation'] ?? '')) {
+            throw ValidationException::field(
+                'password_confirmation',
+                'The password confirmation does not match.',
+            );
+        }
 
         return Response::created($this->accounts()->createUser($this->identity($request), $input));
     }

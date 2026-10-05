@@ -68,19 +68,21 @@ final class AccountService
 
         $departmentId = $this->defaultDepartment();
         $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => $this->passwords->cost()]);
+        $verifiedAt = gmdate('Y-m-d H:i:s');
 
         try {
             $id = $this->database->insert('users', [
-                'role_id'           => $this->roleId($role),
-                'department_id'     => $departmentId,
-                'first_name'        => trim((string) $input['first_name']),
-                'last_name'         => trim((string) $input['last_name']),
-                'email'             => $email,
-                'phone'             => $this->blankToNull($input['phone'] ?? null),
-                'student_index'     => $role === 'student' ? trim((string) $input['student_index']) : null,
-                'password_hash'     => $hash,
-                'status'            => User::STATUS_PENDING,
+                'role_id'              => $this->roleId($role),
+                'department_id'        => $departmentId,
+                'first_name'           => trim((string) $input['first_name']),
+                'last_name'            => trim((string) $input['last_name']),
+                'email'                => $email,
+                'phone'                => $this->blankToNull($input['phone'] ?? null),
+                'student_index'        => $role === 'student' ? trim((string) $input['student_index']) : null,
+                'password_hash'        => $hash,
+                'status'               => User::STATUS_ACTIVE,
                 'must_change_password' => 0,
+                'email_verified_at'    => $verifiedAt,
             ]);
         } catch (PDOException $exception) {
             if ($this->isDuplicate($exception)) {
@@ -93,13 +95,15 @@ final class AccountService
         $this->securityEvents->record($id, SecurityEventRecorder::ACCOUNT_REGISTERED, 'info', $ip, [
             'role' => $role,
         ]);
-        $this->logger->info('Account registered and awaiting verification.', ['user_id' => $id]);
+        $this->logger->info('Account registered and ready to sign in.', [
+            'user_id' => $id,
+        ]);
 
         return [
             'id'                => $id,
             'email'             => $email,
-            'status'            => User::STATUS_PENDING,
-            'email_verified_at' => null,
+            'status'            => User::STATUS_ACTIVE,
+            'email_verified_at' => $verifiedAt,
         ];
     }
 
@@ -308,8 +312,16 @@ final class AccountService
             $actor,
             isset($input['department_id']) ? (int) $input['department_id'] : null,
         );
-        $temporary = bin2hex(random_bytes(16));
-        $hash = password_hash($temporary, PASSWORD_BCRYPT, ['cost' => $this->passwords->cost()]);
+        $chosen = trim((string) ($input['password'] ?? ''));
+        $name = trim((string) $input['first_name'] . ' ' . (string) $input['last_name']);
+        if ($chosen !== '') {
+            $this->passwords->assertAcceptable($chosen, $email, $name);
+            $hash = password_hash($chosen, PASSWORD_BCRYPT, ['cost' => $this->passwords->cost()]);
+            $mustChange = 0;
+        } else {
+            $hash = password_hash(bin2hex(random_bytes(16)), PASSWORD_BCRYPT, ['cost' => $this->passwords->cost()]);
+            $mustChange = 1;
+        }
 
         try {
             $id = $this->database->insert('users', [
@@ -323,7 +335,7 @@ final class AccountService
                 'staff_id'             => $this->blankToNull($input['staff_id'] ?? null),
                 'password_hash'        => $hash,
                 'status'               => User::STATUS_ACTIVE,
-                'must_change_password' => 1,
+                'must_change_password' => $mustChange,
                 'email_verified_at'    => gmdate('Y-m-d H:i:s'),
             ]);
         } catch (PDOException $exception) {
@@ -336,11 +348,9 @@ final class AccountService
 
         $created = $this->requireUser($id);
         $this->audit->record($actor, 'user.created', 'user', $id, null, $created->toArray());
-        if ($this->local) {
-            $this->logger->info('Temporary password issued for a new account. It is not returned by the API.', [
-                'user_id' => $id,
-            ]);
-        }
+        $this->logger->info($mustChange ? 'Account created; they must set a password before signing in.' : 'Account created and ready to sign in.', [
+            'user_id' => $id,
+        ]);
 
         return $created->toArray();
     }
